@@ -2,11 +2,10 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, FileText, Download, Sparkles } from 'lucide-react';
+import { Loader2, FileText, Download, Sparkles, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateArticle } from '@/services/geminiService';
 import { exportToWord } from '@/services/wordExportService';
@@ -19,6 +18,7 @@ export const ArticleGenerator = () => {
   const [generatedArticle, setGeneratedArticle] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [error, setError] = useState('');
 
   const handleGenerateArticle = async () => {
     if (!topic.trim()) {
@@ -27,18 +27,31 @@ export const ArticleGenerator = () => {
     }
 
     setIsGenerating(true);
+    setError('');
+    setGeneratedArticle('');
+    
     try {
+      console.log('بدء إنشاء المقال...');
+      
       const article = await generateArticle({
-        topic,
+        topic: topic.trim(),
         articleType,
         wordCount: parseInt(wordCount),
         language
       });
-      setGeneratedArticle(article);
-      toast.success('تم إنشاء المقال بنجاح!');
+      
+      if (article && article.trim()) {
+        setGeneratedArticle(article);
+        toast.success('تم إنشاء المقال بنجاح!');
+        console.log('تم إنشاء المقال بنجاح');
+      } else {
+        throw new Error('تم إنشاء مقال فارغ');
+      }
     } catch (error) {
       console.error('خطأ في إنشاء المقال:', error);
-      toast.error('حدث خطأ أثناء إنشاء المقال. يرجى المحاولة مرة أخرى.');
+      const errorMessage = error instanceof Error ? error.message : 'حدث خطأ غير متوقع';
+      setError(errorMessage);
+      toast.error(`فشل في إنشاء المقال: ${errorMessage}`);
     } finally {
       setIsGenerating(false);
     }
@@ -151,6 +164,16 @@ export const ArticleGenerator = () => {
                   </div>
                 </div>
 
+                {error && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 text-red-700">
+                      <AlertCircle className="w-5 h-5" />
+                      <span className="font-medium">خطأ في إنشاء المقال</span>
+                    </div>
+                    <p className="text-red-600 text-sm mt-1">{error}</p>
+                  </div>
+                )}
+
                 <Button 
                   onClick={handleGenerateArticle}
                   disabled={isGenerating}
@@ -202,13 +225,21 @@ export const ArticleGenerator = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {generatedArticle ? (
+                {isGenerating ? (
+                  <div className="text-center py-12">
+                    <Loader2 className="w-12 h-12 mx-auto mb-4 text-blue-600 animate-spin" />
+                    <p className="text-lg text-gray-600">جاري إنشاء المقال...</p>
+                    <p className="text-sm text-gray-500 mt-2">قد يستغرق هذا بضع ثوان</p>
+                  </div>
+                ) : generatedArticle ? (
                   <div className="bg-gray-50 rounded-lg p-6 max-h-96 overflow-y-auto">
                     <div className="prose prose-sm max-w-none text-right" dir="rtl">
                       {generatedArticle.split('\n').map((paragraph, index) => (
-                        <p key={index} className="mb-4 leading-relaxed text-gray-800">
-                          {paragraph}
-                        </p>
+                        paragraph.trim() && (
+                          <p key={index} className="mb-4 leading-relaxed text-gray-800">
+                            {paragraph}
+                          </p>
+                        )
                       ))}
                     </div>
                   </div>
@@ -216,6 +247,9 @@ export const ArticleGenerator = () => {
                   <div className="text-center py-12 text-gray-500">
                     <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
                     <p className="text-lg">سيظهر المقال هنا بعد الإنشاء</p>
+                    <p className="text-sm text-gray-400 mt-2">
+                      {error ? 'حدث خطأ في إنشاء المقال' : 'أدخل موضوعك واضغط على إنشاء المقال'}
+                    </p>
                   </div>
                 )}
               </CardContent>
