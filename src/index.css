@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -39,19 +40,12 @@ All colors MUST be HSL.
     --radius: 0.5rem;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
@@ -101,5 +95,289 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'IBM Plex Sans Arabic', 'Arial', sans-serif;
+    direction: rtl;
+  }
+  
+  /* تحسين الخطوط العربية */
+  .font-arabic {
+    font-family: 'IBM Plex Sans Arabic', 'Arial', sans-serif;
+  }
+  
+  /* تحسين التباعد للنصوص العربية */
+  .text-arabic {
+    letter-spacing: 0.02em;
+    word-spacing: 0.1em;
+  }
+  
+  /* تنسيق الفقرات العربية */
+  .prose-arabic {
+    text-align: justify;
+    line-height: 1.8;
+    word-spacing: 0.1em;
+  }
+  
+  /* تحسين الأزرار للغة العربية */
+  .btn-arabic {
+    font-weight: 500;
+    letter-spacing: 0.01em;
+  }
+  
+  /* تحسين النماذج للغة العربية */
+  .form-arabic input,
+  .form-arabic textarea,
+  .form-arabic select {
+    direction: rtl;
+    text-align: right;
+  }
+  
+  /* تحسين القوائم المنسدلة */
+  .dropdown-arabic {
+    direction: rtl;
+    text-align: right;
+  }
+  
+  /* تحسين الجداول للغة العربية */
+  .table-arabic {
+    direction: rtl;
+  }
+  
+  .table-arabic th,
+  .table-arabic td {
+    text-align: right;
+  }
+  
+  /* تحسين المودالات للغة العربية */
+  .modal-arabic {
+    direction: rtl;
+    text-align: right;
+  }
+  
+  /* تحسين التنقل للغة العربية */
+  .nav-arabic {
+    direction: rtl;
+  }
+  
+  /* تحسين الكروت للغة العربية */
+  .card-arabic {
+    direction: rtl;
+    text-align: right;
+  }
+  
+  /* تحسين الأيقونات للغة العربية */
+  .icon-arabic {
+    transform: scaleX(-1);
+  }
+  
+  /* تحسين الفاصلات للغة العربية */
+  .divider-arabic {
+    direction: rtl;
+  }
+  
+  /* تحسين الحدود للغة العربية */
+  .border-arabic {
+    border-right: 1px solid;
+    border-left: none;
+  }
+  
+  /* تحسين الهوامش للغة العربية */
+  .margin-arabic {
+    margin-right: auto;
+    margin-left: 0;
+  }
+  
+  /* تحسين التباعد للغة العربية */
+  .padding-arabic {
+    padding-right: 1rem;
+    padding-left: 0.5rem;
+  }
+}
+
+/* تحسينات إضافية للأداء */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .text-pretty {
+    text-wrap: pretty;
+  }
+  
+  .bg-blur {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  
+  .gradient-text {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .shadow-glow {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+  }
+  
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+  
+  .animate-pulse-slow {
+    animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.6s ease-out;
+  }
+  
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .animate-scale-in {
+    animation: scaleIn 0.4s ease-out;
+  }
+  
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+}
+
+/* تحسينات الاستجابة */
+@media (max-width: 768px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  .text-4xl {
+    font-size: 2.5rem;
+  }
+  
+  .text-3xl {
+    font-size: 2rem;
+  }
+  
+  .py-20 {
+    padding-top: 3rem;
+    padding-bottom: 3rem;
+  }
+  
+  .py-12 {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+  }
+}
+
+/* تحسينات الطباعة */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-only {
+    display: block !important;
+  }
+  
+  body {
+    font-size: 12pt;
+    line-height: 1.6;
+  }
+  
+  .container {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+/* تحسينات الوضع المظلم */
+@media (prefers-color-scheme: dark) {
+  .auto-dark {
+    background-color: #1a202c;
+    color: #e2e8f0;
+  }
+}
+
+/* تحسينات إمكانية الوصول */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* تحسينات عالية التباين */
+@media (prefers-contrast: high) {
+  .btn {
+    border: 2px solid;
+  }
+  
+  .card {
+    border: 1px solid;
+  }
+}
+
+/* تحسينات الشاشات الكبيرة */
+@media (min-width: 1920px) {
+  .container {
+    max-width: 1400px;
+  }
+}
+
+/* تحسينات الشاشات فائقة العرض */
+@media (min-width: 2560px) {
+  .container {
+    max-width: 1800px;
+  }
+  
+  .text-6xl {
+    font-size: 5rem;
+  }
+  
+  .text-4xl {
+    font-size: 3.5rem;
   }
 }
