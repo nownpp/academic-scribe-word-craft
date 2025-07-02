@@ -1,236 +1,148 @@
 
 interface ArticleParams {
   topic: string;
-  articleType: string;
   wordCount: number;
   language: string;
+  researchSettings?: {
+    authorName: string;
+    grade: string;
+    supervisor: string;
+    includeResearchPage: boolean;
+  };
 }
 
 const GEMINI_API_KEY = 'AIzaSyDXz2fpgbsBZeE7heHRBilsYJJlMT3zyik';
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
-// إنشاء بروومت متخصص حسب نوع المقال
-function createSpecializedPrompt(params: ArticleParams): string {
-  const { topic, articleType, wordCount, language } = params;
+function createScientificResearchPrompt(params: ArticleParams): string {
+  const { topic, wordCount, language, researchSettings } = params;
   
   const isArabic = language === 'arabic';
-  const languageInstruction = isArabic ? 'اكتب المقال كاملاً باللغة العربية' : 'Write the entire article in English';
-  
-  let articleStructure = '';
-  let specificInstructions = '';
-  
-  // تخصيص البروومت حسب نوع المقال
-  switch (articleType) {
-    case 'research':
-      articleStructure = isArabic ? `
-1. المقدمة (تعريف بالموضوع وأهميته)
-2. مراجعة الأدبيات (الدراسات السابقة)
-3. المنهجية (الطريقة المتبعة في البحث)
-4. النتائج والتحليل
-5. المناقشة والتفسير
-6. الخاتمة والتوصيات
-7. المراجع` : `
-1. Introduction (Topic definition and importance)
-2. Literature Review (Previous studies)
-3. Methodology (Research approach)
-4. Results and Analysis
-5. Discussion and Interpretation
-6. Conclusion and Recommendations
-7. References`;
-      
-      specificInstructions = isArabic ? `
-- استخدم منهجية علمية واضحة
-- اذكر أرقام وإحصائيات علمية مناسبة
-- استخدم مصطلحات بحثية دقيقة
-- اجعل الأسلوب أكاديمي ومتخصص` : `
-- Use clear scientific methodology
-- Include appropriate scientific numbers and statistics
-- Use precise research terminology
-- Make the style academic and specialized`;
-      break;
-      
-    case 'review':
-      articleStructure = isArabic ? `
-1. المقدمة (نظرة عامة على الموضوع)
-2. تاريخ وتطور الموضوع
-3. النظريات والمفاهيم الأساسية
-4. الدراسات والبحوث الحديثة
-5. التحليل النقدي للأدبيات
-6. الفجوات البحثية والتوصيات
-7. الخاتمة` : `
-1. Introduction (Overview of the topic)
-2. History and development of the topic
-3. Basic theories and concepts
-4. Recent studies and research
-5. Critical analysis of literature
-6. Research gaps and recommendations
-7. Conclusion`;
-      
-      specificInstructions = isArabic ? `
-- راجع وحلل الأدبيات الموجودة
-- قارن بين النظريات والدراسات المختلفة
-- اذكر نقاط القوة والضعف في الدراسات
-- قدم نظرة شاملة ونقدية` : `
-- Review and analyze existing literature
-- Compare different theories and studies
-- Mention strengths and weaknesses in studies
-- Provide comprehensive and critical perspective`;
-      break;
-      
-    case 'analysis':
-      articleStructure = isArabic ? `
-1. المقدمة (تحديد موضوع التحليل)
-2. الإطار النظري
-3. منهجية التحليل
-4. التحليل التفصيلي
-5. النتائج والاستنتاجات
-6. التوصيات والحلول
-7. الخاتمة` : `
-1. Introduction (Defining the analysis topic)
-2. Theoretical framework
-3. Analysis methodology
-4. Detailed analysis
-5. Results and conclusions
-6. Recommendations and solutions
-7. Conclusion`;
-      
-      specificInstructions = isArabic ? `
-- استخدم أدوات التحليل المناسبة
-- قدم تحليلاً عميقاً ومفصلاً
-- استخدم الأمثلة والحالات العملية
-- اربط النتائج بالواقع العملي` : `
-- Use appropriate analysis tools
-- Provide deep and detailed analysis
-- Use examples and practical cases
-- Connect results to practical reality`;
-      break;
-      
-    case 'case-study':
-      articleStructure = isArabic ? `
-1. المقدمة (تعريف بالحالة)
-2. خلفية الحالة
-3. منهجية دراسة الحالة
-4. عرض وتحليل البيانات
-5. النتائج والاستنتاجات
-6. الدروس المستفادة
-7. التوصيات والتطبيقات` : `
-1. Introduction (Case definition)
-2. Case background
-3. Case study methodology
-4. Data presentation and analysis
-5. Results and conclusions
-6. Lessons learned
-7. Recommendations and applications`;
-      
-      specificInstructions = isArabic ? `
-- اختر حالة واقعية ومناسبة للموضوع
-- قدم تفاصيل دقيقة عن الحالة
-- حلل الحالة من زوايا متعددة
-- استخرج الدروس والعبر العملية` : `
-- Choose realistic and appropriate case for the topic
-- Provide accurate details about the case
-- Analyze the case from multiple angles
-- Extract practical lessons and insights`;
-      break;
-      
-    case 'survey':
-      articleStructure = isArabic ? `
-1. المقدمة (أهداف الاستطلاع)
-2. منهجية البحث
-3. تصميم الاستطلاع وأدواته
-4. جمع البيانات والعينة
-5. تحليل النتائج والإحصائيات
-6. مناقشة النتائج
-7. الخاتمة والتوصيات` : `
-1. Introduction (Survey objectives)
-2. Research methodology
-3. Survey design and tools
-4. Data collection and sample
-5. Results analysis and statistics
-6. Results discussion
-7. Conclusion and recommendations`;
-      
-      specificInstructions = isArabic ? `
-- قدم نتائج إحصائية واقعية
-- استخدم الرسوم البيانية الوصفية
-- حلل البيانات بطريقة علمية
-- فسر النتائج بوضوح` : `
-- Provide realistic statistical results
-- Use descriptive charts
-- Analyze data scientifically
-- Interpret results clearly`;
-      break;
-      
-    default:
-      articleStructure = isArabic ? `
-1. المقدمة
-2. التعريفات والمفاهيم الأساسية
-3. العرض الرئيسي (3-4 نقاط رئيسية)
-4. التطبيقات العملية
-5. التحديات والحلول
-6. الخاتمة` : `
-1. Introduction
-2. Definitions and basic concepts
-3. Main presentation (3-4 main points)
-4. Practical applications
-5. Challenges and solutions
-6. Conclusion`;
-      
-      specificInstructions = isArabic ? `
-- استخدم أسلوب علمي ومنطقي
-- قدم معلومات دقيقة ومفيدة
-- استخدم أمثلة واقعية` : `
-- Use scientific and logical style
-- Provide accurate and useful information
-- Use realistic examples`;
-  }
+  const languageInstruction = isArabic ? 'اكتب البحث كاملاً باللغة العربية' : 'Write the entire research in English';
   
   const promptText = `${languageInstruction}
 
-You are a specialized academic expert in scientific and research writing. Your task is to write a high-quality professional scientific article.
+أنت خبير أكاديمي متخصص في كتابة البحوث العلمية. مهمتك كتابة بحث علمي احترافي متكامل.
 
-Article Topic: "${topic}"
-Article Type: ${articleType || (isArabic ? 'مقال علمي عام' : 'General Scientific Article')}
-Required Word Count: ${wordCount} words
-Language: ${isArabic ? 'Arabic' : 'English'}
+موضوع البحث: "${topic}"
+الحد الأدنى للكلمات: ${wordCount} كلمة (يجب أن يكون البحث مفصلاً وشاملاً)
+اللغة: ${isArabic ? 'العربية الفصحى' : 'English'}
 
-Required Article Structure:
-${articleStructure}
+📋 متطلبات البحث الأساسية:
 
-Special Instructions:
-${specificInstructions}
-
-Required Quality Standards:
 ${isArabic ? `
-- أسلوب أكاديمي احترافي ودقيق
-- استخدام المصطلحات العلمية المناسبة
-- تنظيم منطقي وتسلسل واضح للأفكار
-- معلومات دقيقة وموثوقة
-- خلو من الأخطاء اللغوية والنحوية
-- ترقيم وتنسيق مناسب للنشر الأكاديمي` : `
-- Professional and precise academic style
-- Use appropriate scientific terminology
-- Logical organization and clear flow of ideas
-- Accurate and reliable information
-- Free from linguistic and grammatical errors
-- Appropriate numbering and formatting for academic publication`}
+✅ البنية المطلوبة:
 
-Text Formatting:
-${isArabic ? `
-- استخدم العناوين الفرعية بوضوح
-- اجعل الفقرات متوازنة ومترابطة
-- استخدم الانتقالات السلسة بين الأفكار` : `
-- Use clear subheadings
-- Make paragraphs balanced and interconnected
-- Use smooth transitions between ideas`}
+1. المقدمة:
+   - تمهيد مختصر عن أهمية الموضوع
+   - بيان المشكلة البحثية
+   - أهدف البحث
 
-${isArabic ? 'ابدأ الكتابة فوراً دون مقدمات إضافية واكتب المقال كاملاً بالتفصيل.' : 'Start writing immediately without additional introductions and write the complete article in detail.'}`;
+2. العناصر الأساسية (المحاور):
+   - قائمة مرقمة واضحة توضح أهم ما سيتم تناوله في البحث
+   - يجب أن تكون شاملة ومنطقية
+
+3. تناول كل عنصر على حدة:
+   - عنوان فرعي واضح لكل محور
+   - شرح مفصل وعلمي دقيق
+   - أمثلة واقعية وبيانات علمية
+   - ربط المحاور ببعضها البعض
+
+4. الخاتمة:
+   - تلخيص النتائج الرئيسية
+   - التوصيات المستقبلية
+
+5. المراجع:
+   - قائمة بالمصادر العلمية المرجعية (عامة)
+   - على الأقل 15-20 مرجع متنوع
+
+✅ المواصفات العلمية:
+
+- الأسلوب: أكاديمي علمي دقيق
+- اللغة: عربية فصحى سليمة خالية من الأخطاء
+- الطول: لا يقل عن ${wordCount} كلمة (يجب الوصول لحجم 11+ ورقة بحثية)
+- المحتوى: معلومات دقيقة وموثوقة مع تحليل عميق
+- التنظيم: تسلسل منطقي واضح للأفكار
+- الأمثلة: استخدام حالات عملية وأرقام إحصائية مناسبة
+
+✅ التنسيق المطلوب:
+
+العنوان الرئيسي:
+[عنوان البحث - واضح ومحدد]
+
+المقدمة:
+فقرة تمهيدية شاملة عن الموضوع وأهميته
+
+العناصر التي سيناقشها البحث:
+1. [المحور الأول]
+2. [المحور الثاني] 
+3. [المحور الثالث]
+[... وهكذا حسب الموضوع]
+
+ثم تناول كل محور بالتفصيل:
+
+1. [عنوان المحور الأول]
+[محتوى مفصل وعلمي عن هذا المحور]
+
+2. [عنوان المحور الثاني]  
+[محتوى مفصل وعلمي عن هذا المحور]
+
+وهكذا حتى إنهاء جميع المحاور...
+
+الخاتمة:
+[تلخيص شامل للنتائج والتوصيات]
+
+المراجع:
+[قائمة بالمصادر العلمية]` : `
+✅ Required Structure:
+
+1. Introduction:
+   - Brief overview of topic importance
+   - Research problem statement
+   - Research objectives
+
+2. Main Elements (Outline):
+   - Clear numbered list showing what will be discussed
+   - Must be comprehensive and logical
+
+3. Detailed discussion of each element:
+   - Clear subheading for each section
+   - Detailed and precise scientific explanation
+   - Real examples and scientific data
+   - Connect sections logically
+
+4. Conclusion:
+   - Summary of main findings
+   - Future recommendations
+
+5. References:
+   - List of scientific sources (general)
+   - At least 15-20 diverse references
+
+✅ Scientific Specifications:
+
+- Style: Academic and scientifically precise
+- Language: Proper English free from errors
+- Length: Minimum ${wordCount} words (must reach 11+ research pages)
+- Content: Accurate and reliable information with deep analysis
+- Organization: Clear logical flow of ideas
+- Examples: Use practical cases and appropriate statistics`}
+
+🎯 تعليمات مهمة:
+- ابدأ الكتابة فوراً دون مقدمات إضافية
+- اكتب البحث كاملاً ومفصلاً
+- تأكد من الوصول للحد الأدنى من الكلمات المطلوبة
+- اجعل البحث علمياً ومفيداً وقابلاً للنشر الأكاديمي
+- استخدم معلومات دقيقة وموثوقة
+- اربط المحاور ببعضها البعض بطريقة منطقية
+
+ابدأ بالعنوان الرئيسي الآن:`;
 
   return promptText;
 }
 
 export async function generateArticle(params: ArticleParams): Promise<string> {
-  const prompt = createSpecializedPrompt(params);
+  const prompt = createScientificResearchPrompt(params);
   
   try {
     console.log('إرسال طلب إلى Gemini Flash API...');
@@ -299,10 +211,10 @@ export async function generateArticle(params: ArticleParams): Promise<string> {
       const generatedText = data.candidates[0].content.parts[0].text;
       
       if (!generatedText || generatedText.trim().length === 0) {
-        throw new Error('تم إنشاء مقال فارغ من الخدمة');
+        throw new Error('تم إنشاء بحث فارغ من الخدمة');
       }
       
-      console.log('تم إنشاء المقال بنجاح، عدد الأحرف:', generatedText.length);
+      console.log('تم إنشاء البحث بنجاح، عدد الأحرف:', generatedText.length);
       return generatedText.trim();
     } else {
       console.error('بنية الاستجابة غير متوقعة:', data);
@@ -324,6 +236,6 @@ export async function generateArticle(params: ArticleParams): Promise<string> {
       throw error;
     }
     
-    throw new Error('حدث خطأ غير متوقع في إنشاء المقال');
+    throw new Error('حدث خطأ غير متوقع في إنشاء البحث');
   }
 }
