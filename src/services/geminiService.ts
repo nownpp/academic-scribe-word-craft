@@ -6,7 +6,7 @@ interface ArticleParams {
   language: string;
 }
 
-const GEMINI_API_KEY = 'AIzaSyBHPTJbMjDX1xVNGMKBH5d8wg_wBaeDKQ0';
+const GEMINI_API_KEY = 'AIzaSyDMogr3BbF-Eggljeb6GoPvupsjvz6e-KI';
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
 
 // إنشاء بروومت متخصص حسب نوع المقال
