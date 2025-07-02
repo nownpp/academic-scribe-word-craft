@@ -6,11 +6,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Loader2, FileText, Download, Sparkles, AlertCircle, Settings } from 'lucide-react';
+import { Loader2, FileText, Download, Sparkles, AlertCircle, Settings, PlayCircle, Pause, SkipForward } from 'lucide-react';
 import { toast } from 'sonner';
-import { generateArticle } from '@/services/geminiService';
+import { generateArticleSection } from '@/services/geminiService';
 import { exportToWord } from '@/services/wordExportService';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { ResearchViewer } from '@/components/ResearchViewer';
+
+interface ResearchSection {
+  title: string;
+  content: string;
+  completed: boolean;
+}
 
 export const ArticleGenerator = () => {
   const [topic, setTopic] = useState('');
@@ -20,8 +27,10 @@ export const ArticleGenerator = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState('');
+  const [currentStep, setCurrentStep] = useState(0);
+  const [isStepByStep, setIsStepByStep] = useState(false);
   
-  // Research settings (optional)
+  // Research settings
   const [researchSettings, setResearchSettings] = useState({
     authorName: '',
     grade: '',
@@ -29,7 +38,28 @@ export const ArticleGenerator = () => {
     includeResearchPage: false
   });
 
-  const handleGenerateArticle = async () => {
+  // Research sections
+  const [researchSections, setResearchSections] = useState<ResearchSection[]>([
+    { title: 'المقدمة', content: '', completed: false },
+    { title: 'التعريف بالموضوع', content: '', completed: false },
+    { title: 'المحور الأول', content: '', completed: false },
+    { title: 'المحور الثاني', content: '', completed: false },
+    { title: 'المحور الثالث', content: '', completed: false },
+    { title: 'الخاتمة', content: '', completed: false },
+    { title: 'المراجع', content: '', completed: false },
+  ]);
+
+  const researchSteps = [
+    'المقدمة وأهمية الموضوع',
+    'التعريف بالموضوع والمفاهيم الأساسية',
+    'المحور الأول من البحث',
+    'المحور الثاني من البحث', 
+    'المحور الثالث من البحث',
+    'الخاتمة والنتائج',
+    'المراجع والمصادر'
+  ];
+
+  const handleGenerateComplete = async () => {
     if (!topic.trim()) {
       toast.error('يرجى إدخال موضوع المقال');
       return;
@@ -40,19 +70,19 @@ export const ArticleGenerator = () => {
     setGeneratedArticle('');
     
     try {
-      console.log('بدء إنشاء المقال...');
+      console.log('بدء إنشاء المقال الكامل...');
       
-      const article = await generateArticle({
+      const article = await generateArticleSection({
         topic: topic.trim(),
         wordCount: parseInt(wordCount),
         language,
+        sectionType: 'complete',
         researchSettings
       });
       
       if (article && article.trim()) {
         setGeneratedArticle(article);
         toast.success('تم إنشاء المقال بنجاح!');
-        console.log('تم إنشاء المقال بنجاح');
       } else {
         throw new Error('تم إنشاء مقال فارغ');
       }
@@ -61,6 +91,66 @@ export const ArticleGenerator = () => {
       const errorMessage = error instanceof Error ? error.message : 'حدث خطأ غير متوقع';
       setError(errorMessage);
       toast.error(`فشل في إنشاء المقال: ${errorMessage}`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleGenerateSection = async (sectionIndex: number) => {
+    if (!topic.trim()) {
+      toast.error('يرجى إدخال موضوع المقال');
+      return;
+    }
+
+    setIsGenerating(true);
+    setCurrentStep(sectionIndex);
+    
+    try {
+      const sectionType = sectionIndex === 0 ? 'introduction' :
+                         sectionIndex === 1 ? 'definition' :
+                         sectionIndex === researchSteps.length - 2 ? 'conclusion' :
+                         sectionIndex === researchSteps.length - 1 ? 'references' :
+                         'main_section';
+
+      const previousContent = researchSections.slice(0, sectionIndex)
+        .filter(section => section.completed)
+        .map(section => `${section.title}:\n${section.content}`)
+        .join('\n\n');
+
+      const content = await generateArticleSection({
+        topic: topic.trim(),
+        wordCount: Math.ceil(parseInt(wordCount) / researchSteps.length),
+        language,
+        sectionType,
+        sectionIndex,
+        previousContent,
+        researchSettings
+      });
+
+      if (content && content.trim()) {
+        const updatedSections = [...researchSections];
+        updatedSections[sectionIndex] = {
+          ...updatedSections[sectionIndex],
+          content: content.trim(),
+          completed: true
+        };
+        setResearchSections(updatedSections);
+        
+        // تحديث المقال الكامل
+        const completeArticle = updatedSections
+          .filter(section => section.completed)
+          .map(section => `${section.title}\n\n${section.content}`)
+          .join('\n\n');
+        
+        setGeneratedArticle(completeArticle);
+        toast.success(`تم إنشاء ${researchSteps[sectionIndex]} بنجاح!`);
+      } else {
+        throw new Error('تم إنشاء محتوى فارغ');
+      }
+    } catch (error) {
+      console.error('خطأ في إنشاء القسم:', error);
+      const errorMessage = error instanceof Error ? error.message : 'حدث خطأ غير متوقع';
+      toast.error(`فشل في إنشاء ${researchSteps[sectionIndex]}: ${errorMessage}`);
     } finally {
       setIsGenerating(false);
     }
@@ -98,8 +188,8 @@ export const ArticleGenerator = () => {
           </p>
         </div>
 
-        <div className="max-w-4xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-3 gap-8">
             {/* Input Form */}
             <Card className="shadow-lg border-0 bg-gradient-to-br from-blue-50 to-indigo-50">
               <CardHeader>
@@ -211,17 +301,6 @@ export const ArticleGenerator = () => {
                   </div>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-blue-900 mb-2">✅ مواصفات البحث العلمي:</h4>
-                  <ul className="text-sm text-blue-800 space-y-1">
-                    <li>• أسلوب أكاديمي علمي دقيق</li>
-                    <li>• بنية منطقية مع عناصر مرقمة</li>
-                    <li>• لا يقل عن 11 ورقة بحثية</li>
-                    <li>• يتضمن مقدمة ومحاور وخاتمة ومراجع</li>
-                    <li>• تنسيق Word احترافي</li>
-                  </ul>
-                </div>
-
                 {error && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                     <div className="flex items-center gap-2 text-red-700">
@@ -232,86 +311,132 @@ export const ArticleGenerator = () => {
                   </div>
                 )}
 
-                <Button 
-                  onClick={handleGenerateArticle}
-                  disabled={isGenerating}
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
-                >
-                  {isGenerating ? (
-                    <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      جاري إنشاء البحث العلمي...
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="w-5 h-5 mr-2" />
-                      إنشاء البحث العلمي
-                    </>
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
+                <div className="space-y-3">
+                  <Button 
+                    onClick={handleGenerateComplete}
+                    disabled={isGenerating}
+                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+                  >
+                    {isGenerating && !isStepByStep ? (
+                      <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        جاري إنشاء البحث الكامل...
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="w-5 h-5 mr-2" />
+                        إنشاء البحث الكامل
+                      </>
+                    )}
+                  </Button>
 
-            {/* Generated Article */}
-            <Card className="shadow-lg border-0">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-gray-900">
-                    <FileText className="w-6 h-6" />
-                    البحث العلمي المُنشأ
-                  </span>
-                  {generatedArticle && (
-                    <Button
-                      onClick={handleExportToWord}
-                      disabled={isExporting}
-                      size="sm"
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                    >
-                      {isExporting ? (
-                        <>
+                  <Button 
+                    onClick={() => setIsStepByStep(!isStepByStep)}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    {isStepByStep ? (
+                      <>
+                        <Pause className="w-5 h-5 mr-2" />
+                        إخفاء الكتابة المرحلية
+                      </>
+                    ) : (
+                      <>
+                        <PlayCircle className="w-5 h-5 mr-2" />
+                        كتابة مرحلية
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                {isStepByStep && (
+                  <div className="space-y-3">
+                    <h4 className="font-semibold text-gray-900">المراحل:</h4>
+                    {researchSteps.map((step, index) => (
+                      <Button
+                        key={index}
+                        onClick={() => handleGenerateSection(index)}
+                        disabled={isGenerating}
+                        variant={researchSections[index].completed ? "default" : "outline"}
+                        className="w-full justify-start text-sm"
+                        size="sm"
+                      >
+                        {isGenerating && currentStep === index ? (
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          تصدير...
-                        </>
-                      ) : (
-                        <>
-                          <Download className="w-4 h-4 mr-2" />
-                          تصدير إلى Word
-                        </>
-                      )}
-                    </Button>
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {isGenerating ? (
-                  <div className="text-center py-12">
-                    <Loader2 className="w-12 h-12 mx-auto mb-4 text-blue-600 animate-spin" />
-                    <p className="text-lg text-gray-600">جاري إنشاء البحث العلمي...</p>
-                    <p className="text-sm text-gray-500 mt-2">قد يستغرق هذا بضع دقائق لإنشاء بحث متكامل</p>
-                  </div>
-                ) : generatedArticle ? (
-                  <div className="bg-gray-50 rounded-lg p-6 max-h-96 overflow-y-auto">
-                    <div className="prose prose-sm max-w-none text-right" dir="rtl">
-                      {generatedArticle.split('\n').map((paragraph, index) => (
-                        paragraph.trim() && (
-                          <p key={index} className="mb-4 leading-relaxed text-gray-800">
-                            {paragraph}
-                          </p>
-                        )
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-12 text-gray-500">
-                    <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                    <p className="text-lg">سيظهر البحث العلمي هنا بعد الإنشاء</p>
-                    <p className="text-sm text-gray-400 mt-2">
-                      {error ? 'حدث خطأ في إنشاء البحث' : 'أدخل موضوعك واضغط على إنشاء البحث العلمي'}
-                    </p>
+                        ) : researchSections[index].completed ? (
+                          <span className="w-4 h-4 mr-2 bg-green-500 rounded-full text-xs">✓</span>
+                        ) : (
+                          <span className="w-4 h-4 mr-2 bg-gray-300 rounded-full text-xs">{index + 1}</span>
+                        )}
+                        {step}
+                      </Button>
+                    ))}
                   </div>
                 )}
               </CardContent>
             </Card>
+
+            {/* Generated Article */}
+            <div className="lg:col-span-2">
+              <Card className="shadow-lg border-0">
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 text-gray-900">
+                      <FileText className="w-6 h-6" />
+                      البحث العلمي المُنشأ
+                    </span>
+                    {generatedArticle && (
+                      <Button
+                        onClick={handleExportToWord}
+                        disabled={isExporting}
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        {isExporting ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            تصدير...
+                          </>
+                        ) : (
+                          <>
+                            <Download className="w-4 h-4 mr-2" />
+                            تصدير إلى Word
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {isGenerating ? (
+                    <div className="text-center py-12">
+                      <Loader2 className="w-12 h-12 mx-auto mb-4 text-blue-600 animate-spin" />
+                      <p className="text-lg text-gray-600">
+                        {isStepByStep 
+                          ? `جاري إنشاء: ${researchSteps[currentStep]}...`
+                          : 'جاري إنشاء البحث العلمي...'
+                        }
+                      </p>
+                      <p className="text-sm text-gray-500 mt-2">قد يستغرق هذا بضع دقائق لإنشاء بحث متكامل</p>
+                    </div>
+                  ) : generatedArticle ? (
+                    <ResearchViewer 
+                      content={generatedArticle} 
+                      title={topic}
+                      researchSettings={researchSettings}
+                    />
+                  ) : (
+                    <div className="text-center py-12 text-gray-500">
+                      <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                      <p className="text-lg">سيظهر البحث العلمي هنا بعد الإنشاء</p>
+                      <p className="text-sm text-gray-400 mt-2">
+                        أدخل موضوعك واختر طريقة الإنشاء (كامل أو مرحلي)
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </div>

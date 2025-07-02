@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -380,4 +379,106 @@ All colors MUST be HSL.
   .text-4xl {
     font-size: 3.5rem;
   }
+}
+
+/* تنسيق صفحات A4 */
+.a4-page {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  background: white;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+  page-break-after: always;
+}
+
+@media screen {
+  .a4-page {
+    margin-bottom: 20px;
+  }
+}
+
+@media print {
+  .a4-page {
+    margin: 0;
+    box-shadow: none;
+    page-break-after: always;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+}
+
+.content-area {
+  min-height: calc(297mm - 4cm);
+  padding-bottom: 2cm;
+}
+
+.text-indent {
+  text-indent: 1cm;
+}
+
+/* تحسينات الطباعة للأبحاث */
+@page {
+  size: A4;
+  margin: 2cm;
+}
+
+.research-preview {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* تحسينات استجابة صفحات A4 */
+@media (max-width: 768px) {
+  .a4-page {
+    width: 100%;
+    min-height: auto;
+    margin: 0;
+    padding: 1rem;
+  }
+  
+  .content-area {
+    min-height: auto;
+    padding-bottom: 1rem;
+  }
+}
+
+/* تحسينات العرض للشاشات الكبيرة */
+@media (min-width: 1400px) {
+  .research-preview {
+    zoom: 0.8;
+  }
+}
+
+@media (min-width: 1600px) {
+  .research-preview {
+    zoom: 0.9;
+  }
+}
+
+/* تحسينات التنسيق */
+.university-header {
+  text-align: center;
+  margin-bottom: 2cm;
+}
+
+.research-title-section {
+  text-align: center;
+  margin: 2cm 0;
+  padding: 1cm;
+  border: 3px solid #1a365d;
+  border-radius: 10px;
+}
+
+.research-info {
+  text-align: center;
+  margin: 2cm 0;
+}
+
+.academic-year {
+  text-align: center;
+  margin-top: 2cm;
 }
