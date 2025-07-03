@@ -152,12 +152,32 @@ export const ArticleGenerator = () => {
     toast.success('تم إعادة تعيين العناوين للوضع الافتراضي');
   };
 
+  // Continue to next section automatically
+  const continueToNextSection = (currentIndex: number) => {
+    console.log(`Continuing to next section after ${currentIndex}`);
+    const nextIndex = currentIndex + 1;
+    
+    if (nextIndex < researchSections.length) {
+      console.log(`Starting generation for section ${nextIndex}: ${researchSections[nextIndex].title}`);
+      // Add delay to ensure quality generation
+      setTimeout(() => {
+        handleGenerateSection(nextIndex);
+      }, 2000);
+    } else {
+      console.log('All sections completed!');
+      setIsAutoGenerating(false);
+      setIsCompletingAll(false);
+      toast.success('🎉 تم إكمال جميع مراحل البحث بنجاح!');
+    }
+  };
+
   const handleGenerateSection = async (sectionIndex: number) => {
     if (!topic.trim()) {
       toast.error('يرجى إدخال موضوع المقال');
       return;
     }
 
+    console.log(`Starting generation for section ${sectionIndex}: ${researchSections[sectionIndex].title}`);
     setIsGenerating(true);
     setCurrentStep(sectionIndex);
     
@@ -207,16 +227,13 @@ export const ArticleGenerator = () => {
           .join('\n\n');
         
         setGeneratedArticle(completeArticle);
+        console.log(`Section ${sectionIndex} completed successfully with ${wordCount} words`);
         toast.success(`تم إنشاء ${customTitle} بنجاح! (${wordCount} كلمة)`);
         
-        // للتوليد التلقائي أو إكمال جميع المراحل
-        if ((isAutoGenerating || isCompletingAll) && sectionIndex < researchSteps.length - 1) {
-          setTimeout(() => {
-            handleGenerateSection(sectionIndex + 1);
-          }, 3000); // زيادة الوقت لضمان جودة أكبر
-        } else if (isCompletingAll && sectionIndex === researchSteps.length - 1) {
-          setIsCompletingAll(false);
-          toast.success('🎉 تم إكمال جميع مراحل البحث بنجاح!');
+        // Continue to next section if auto-generating or completing all
+        if (isAutoGenerating || isCompletingAll) {
+          console.log(`Auto-continuing from section ${sectionIndex} to next section`);
+          continueToNextSection(sectionIndex);
         }
       } else {
         throw new Error('تم إنشاء محتوى فارغ');
@@ -245,13 +262,16 @@ export const ArticleGenerator = () => {
       return;
     }
 
+    console.log(`Starting complete all stages from index: ${firstIncompleteIndex}`);
     setIsCompletingAll(true);
+    setIsAutoGenerating(true); // Enable both flags for proper continuation
     toast.info(`بدء إكمال المراحل من: ${researchSections[firstIncompleteIndex].title}`);
     
     await handleGenerateSection(firstIncompleteIndex);
   };
 
   const stopAllGeneration = () => {
+    console.log('Stopping all generation processes');
     setIsAutoGenerating(false);
     setIsCompletingAll(false);
     toast.info('تم إيقاف جميع عمليات التوليد');
@@ -263,7 +283,9 @@ export const ArticleGenerator = () => {
       return;
     }
 
+    console.log('Starting auto-generation from first section');
     setIsAutoGenerating(true);
+    setIsCompletingAll(true); // Enable both flags for proper continuation
     setIsStepByStep(true);
     
     await handleGenerateSection(0);
@@ -271,6 +293,7 @@ export const ArticleGenerator = () => {
 
   const stopAutoGeneration = () => {
     setIsAutoGenerating(false);
+    setIsCompletingAll(false);
     toast.info('تم إيقاف التوليد التلقائي');
   };
 
@@ -484,6 +507,20 @@ export const ArticleGenerator = () => {
                       <span className="font-medium">خطأ في إنشاء المقال</span>
                     </div>
                     <p className="text-red-600 text-sm mt-1">{error}</p>
+                  </div>
+                )}
+
+                {/* Current generation status */}
+                {(isGenerating || isAutoGenerating || isCompletingAll) && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 text-blue-700 mb-2">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span className="font-medium">جاري الكتابة...</span>
+                    </div>
+                    <div className="text-sm text-blue-600">
+                      <p>المرحلة الحالية: {researchSections[currentStep]?.title}</p>
+                      <p>الوضع: {isCompletingAll ? 'إكمال جميع المراحل' : 'كتابة مرحلية'}</p>
+                    </div>
                   </div>
                 )}
 
