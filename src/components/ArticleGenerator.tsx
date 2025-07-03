@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -5,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Loader2, FileText, Download, Sparkles, AlertCircle, Settings, PlayCircle, Pause } from 'lucide-react';
+import { Loader2, FileText, Download, Sparkles, AlertCircle, Settings, PlayCircle, Pause, Clock, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateArticleSection } from '@/services/geminiService';
 import { exportToWord } from '@/services/wordExportService';
@@ -16,6 +17,7 @@ interface ResearchSection {
   title: string;
   content: string;
   completed: boolean;
+  wordCount: number;
 }
 
 interface ResearchSettings {
@@ -25,6 +27,7 @@ interface ResearchSettings {
   universityName: string;
   facultyName: string;
   departmentName: string;
+  includeResearchPage: boolean;
 }
 
 export const ArticleGenerator = () => {
@@ -37,6 +40,7 @@ export const ArticleGenerator = () => {
   const [error, setError] = useState('');
   const [currentStep, setCurrentStep] = useState(0);
   const [isStepByStep, setIsStepByStep] = useState(false);
+  const [isAutoGenerating, setIsAutoGenerating] = useState(false);
   
   // Research settings
   const [researchSettings, setResearchSettings] = useState<ResearchSettings>({
@@ -45,18 +49,19 @@ export const ArticleGenerator = () => {
     supervisor: '',
     universityName: '',
     facultyName: '',
-    departmentName: ''
+    departmentName: '',
+    includeResearchPage: true
   });
 
   // Research sections with better Arabic titles
   const [researchSections, setResearchSections] = useState<ResearchSection[]>([
-    { title: 'المقدمة', content: '', completed: false },
-    { title: 'التعريف والمفاهيم الأساسية', content: '', completed: false },
-    { title: 'المحور الأول', content: '', completed: false },
-    { title: 'المحور الثاني', content: '', completed: false },
-    { title: 'المحور الثالث', content: '', completed: false },
-    { title: 'الخاتمة', content: '', completed: false },
-    { title: 'المراجع', content: '', completed: false },
+    { title: 'المقدمة', content: '', completed: false, wordCount: 0 },
+    { title: 'التعريف والمفاهيم الأساسية', content: '', completed: false, wordCount: 0 },
+    { title: 'المحور الأول', content: '', completed: false, wordCount: 0 },
+    { title: 'المحور الثاني', content: '', completed: false, wordCount: 0 },
+    { title: 'المحور الثالث', content: '', completed: false, wordCount: 0 },
+    { title: 'الخاتمة', content: '', completed: false, wordCount: 0 },
+    { title: 'المراجع', content: '', completed: false, wordCount: 0 },
   ]);
 
   const researchSteps = [
@@ -82,47 +87,6 @@ export const ArticleGenerator = () => {
     ];
     
     return `${stageNames[stageIndex]} ${topic}`;
-  };
-
-  const handleGenerateComplete = async () => {
-    if (!topic.trim()) {
-      toast.error('يرجى إدخال موضوع المقال');
-      return;
-    }
-
-    setIsGenerating(true);
-    setError('');
-    setGeneratedArticle('');
-    
-    try {
-      console.log('بدء إنشاء المقال الكامل...');
-      
-      const article = await generateArticleSection({
-        topic: topic.trim(),
-        wordCount: parseInt(wordCount),
-        language,
-        sectionType: 'complete',
-        researchSettings: {
-          ...researchSettings,
-          includeResearchPage: true
-        }
-      });
-      
-      if (article && article.trim()) {
-        const cleanedArticle = cleanAndFormatContent(article);
-        setGeneratedArticle(cleanedArticle);
-        toast.success('تم إنشاء المقال بنجاح!');
-      } else {
-        throw new Error('تم إنشاء مقال فارغ');
-      }
-    } catch (error) {
-      console.error('خطأ في إنشاء المقال:', error);
-      const errorMessage = error instanceof Error ? error.message : 'حدث خطأ غير متوقع';
-      setError(errorMessage);
-      toast.error(`فشل في إنشاء المقال: ${errorMessage}`);
-    } finally {
-      setIsGenerating(false);
-    }
   };
 
   const cleanAndFormatContent = (content: string) => {
@@ -153,6 +117,10 @@ export const ArticleGenerator = () => {
     cleaned = cleaned.replace(/\n\s*\n\s*\n/g, '\n\n');
     
     return cleaned.trim();
+  };
+
+  const countWords = (text: string) => {
+    return text.trim().split(/\s+/).filter(word => word.length > 0).length;
   };
 
   const handleGenerateSection = async (sectionIndex: number) => {
@@ -189,19 +157,18 @@ export const ArticleGenerator = () => {
         sectionType,
         sectionIndex,
         previousContent,
-        researchSettings: {
-          ...researchSettings,
-          includeResearchPage: true
-        }
+        researchSettings
       });
 
       if (content && content.trim()) {
         const cleanedContent = cleanAndFormatContent(content);
+        const wordCount = countWords(cleanedContent);
         const updatedSections = [...researchSections];
         updatedSections[sectionIndex] = {
           ...updatedSections[sectionIndex],
           content: cleanedContent,
-          completed: true
+          completed: true,
+          wordCount: wordCount
         };
         setResearchSections(updatedSections);
         
@@ -212,7 +179,14 @@ export const ArticleGenerator = () => {
           .join('\n\n');
         
         setGeneratedArticle(completeArticle);
-        toast.success(`تم إنشاء ${researchSteps[sectionIndex]} بنجاح! (${cleanedContent.split(' ').length} كلمة)`);
+        toast.success(`تم إنشاء ${researchSteps[sectionIndex]} بنجاح! (${wordCount} كلمة)`);
+        
+        // إذا كان التوليد التلقائي مفعل، انتقل للمرحلة التالية
+        if (isAutoGenerating && sectionIndex < researchSteps.length - 1) {
+          setTimeout(() => {
+            handleGenerateSection(sectionIndex + 1);
+          }, 2000);
+        }
       } else {
         throw new Error('تم إنشاء محتوى فارغ');
       }
@@ -220,9 +194,28 @@ export const ArticleGenerator = () => {
       console.error('خطأ في إنشاء القسم:', error);
       const errorMessage = error instanceof Error ? error.message : 'حدث خطأ غير متوقع';
       toast.error(`فشل في إنشاء ${researchSteps[sectionIndex]}: ${errorMessage}`);
+      setIsAutoGenerating(false);
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleAutoGenerate = async () => {
+    if (!topic.trim()) {
+      toast.error('يرجى إدخال موضوع المقال');
+      return;
+    }
+
+    setIsAutoGenerating(true);
+    setIsStepByStep(true);
+    
+    // البدء من المرحلة الأولى
+    await handleGenerateSection(0);
+  };
+
+  const stopAutoGeneration = () => {
+    setIsAutoGenerating(false);
+    toast.info('تم إيقاف التوليد التلقائي');
   };
 
   const handleExportToWord = async () => {
@@ -241,6 +234,14 @@ export const ArticleGenerator = () => {
     } finally {
       setIsExporting(false);
     }
+  };
+
+  const getTotalWords = () => {
+    return researchSections.reduce((total, section) => total + section.wordCount, 0);
+  };
+
+  const getCompletedSections = () => {
+    return researchSections.filter(section => section.completed).length;
   };
 
   return (
@@ -406,6 +407,20 @@ export const ArticleGenerator = () => {
                   </div>
                 </div>
 
+                {/* معلومات التقدم */}
+                {getCompletedSections() > 0 && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 text-green-700 mb-2">
+                      <CheckCircle className="w-5 h-5" />
+                      <span className="font-medium">تقدم البحث</span>
+                    </div>
+                    <div className="text-sm text-green-600">
+                      <p>المراحل المكتملة: {getCompletedSections()} من {researchSteps.length}</p>
+                      <p>إجمالي الكلمات: {getTotalWords().toLocaleString()} كلمة</p>
+                    </div>
+                  </div>
+                )}
+
                 {error && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                     <div className="flex items-center gap-2 text-red-700">
@@ -417,23 +432,24 @@ export const ArticleGenerator = () => {
                 )}
 
                 <div className="space-y-3">
-                  <Button 
-                    onClick={handleGenerateComplete}
-                    disabled={isGenerating}
-                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
-                  >
-                    {isGenerating && !isStepByStep ? (
-                      <>
-                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        جاري إنشاء البحث الكامل...
-                      </>
-                    ) : (
-                      <>
-                        <FileText className="w-5 h-5 mr-2" />
-                        إنشاء البحث الكامل
-                      </>
-                    )}
-                  </Button>
+                  {!isAutoGenerating ? (
+                    <Button 
+                      onClick={handleAutoGenerate}
+                      disabled={isGenerating}
+                      className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+                    >
+                      <PlayCircle className="w-5 h-5 mr-2" />
+                      كتابة البحث مرحليًا (تلقائي)
+                    </Button>
+                  ) : (
+                    <Button 
+                      onClick={stopAutoGeneration}
+                      className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-medium py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+                    >
+                      <Pause className="w-5 h-5 mr-2" />
+                      إيقاف التوليد التلقائي
+                    </Button>
+                  )}
 
                   <Button 
                     onClick={() => setIsStepByStep(!isStepByStep)}
@@ -448,7 +464,7 @@ export const ArticleGenerator = () => {
                     ) : (
                       <>
                         <PlayCircle className="w-5 h-5 mr-2" />
-                        كتابة مرحلية
+                        كتابة مرحلية يدوية
                       </>
                     )}
                   </Button>
@@ -461,19 +477,26 @@ export const ArticleGenerator = () => {
                       <Button
                         key={index}
                         onClick={() => handleGenerateSection(index)}
-                        disabled={isGenerating}
+                        disabled={isGenerating || isAutoGenerating}
                         variant={researchSections[index].completed ? "default" : "outline"}
-                        className="w-full justify-start text-sm"
+                        className="w-full justify-between text-sm p-3"
                         size="sm"
                       >
-                        {isGenerating && currentStep === index ? (
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        ) : researchSections[index].completed ? (
-                          <span className="w-4 h-4 mr-2 bg-green-500 rounded-full text-xs">✓</span>
-                        ) : (
-                          <span className="w-4 h-4 mr-2 bg-gray-300 rounded-full text-xs">{index + 1}</span>
+                        <div className="flex items-center">
+                          {isGenerating && currentStep === index ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          ) : researchSections[index].completed ? (
+                            <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
+                          ) : (
+                            <Clock className="w-4 h-4 mr-2 text-gray-400" />
+                          )}
+                          {step}
+                        </div>
+                        {researchSections[index].completed && (
+                          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                            {researchSections[index].wordCount} كلمة
+                          </span>
                         )}
-                        {step}
                       </Button>
                     ))}
                   </div>
@@ -517,12 +540,12 @@ export const ArticleGenerator = () => {
                     <div className="text-center py-12">
                       <Loader2 className="w-12 h-12 mx-auto mb-4 text-blue-600 animate-spin" />
                       <p className="text-lg text-gray-600">
-                        {isStepByStep 
-                          ? `جاري إنشاء: ${researchSteps[currentStep]}...`
-                          : 'جاري إنشاء البحث العلمي...'
-                        }
+                        جاري إنشاء: {researchSteps[currentStep]}...
                       </p>
-                      <p className="text-sm text-gray-500 mt-2">قد يستغرق هذا بضع دقائق لإنشاء بحث متكامل</p>
+                      <p className="text-sm text-gray-500 mt-2">
+                        {isAutoGenerating ? 'الكتابة التلقائية - ' : ''}
+                        قد يستغرق هذا بضع دقائق لإنشاء بحث متكامل
+                      </p>
                     </div>
                   ) : generatedArticle ? (
                     <ResearchViewer 
@@ -535,7 +558,7 @@ export const ArticleGenerator = () => {
                       <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
                       <p className="text-lg">سيظهر البحث العلمي هنا بعد الإنشاء</p>
                       <p className="text-sm text-gray-400 mt-2">
-                        أدخل موضوعك واختر طريقة الإنشاء (كامل أو مرحلي)
+                        أدخل موضوعك واختر طريقة الإنشاء (تلقائي أو مرحلي)
                       </p>
                     </div>
                   )}

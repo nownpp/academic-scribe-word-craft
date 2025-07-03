@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +16,7 @@ interface ResearchViewerProps {
     universityName: string;
     facultyName: string;
     departmentName: string;
+    includeResearchPage: boolean;
   };
 }
 
@@ -23,18 +25,14 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
   title, 
   researchSettings 
 }) => {
-  const [fontSize, setFontSize] = useState(14);
+  const [fontSize, setFontSize] = useState(16);
   const [textAlign, setTextAlign] = useState<'right' | 'center' | 'justify'>('justify');
-  const [lineHeight, setLineHeight] = useState(1.6);
+  const [lineHeight, setLineHeight] = useState(1.8);
   const [editableContent, setEditableContent] = useState(content);
   const [isGenerating, setIsGenerating] = useState(false);
 
   const increaseFontSize = () => setFontSize(prev => Math.min(prev + 2, 24));
   const decreaseFontSize = () => setFontSize(prev => Math.max(prev - 2, 10));
-
-  const handleContentChange = (newContent: string) => {
-    setEditableContent(newContent);
-  };
 
   const generateNewContent = async (selectedText: string, context: string) => {
     if (!selectedText.trim()) return;
@@ -177,6 +175,86 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
     }
   };
 
+  // دالة لتحديد نوع العنصر وإعطاؤه التنسيق المناسب
+  const getElementStyle = (text: string, index: number) => {
+    const trimmed = text.trim();
+    
+    // العنوان الرئيسي
+    if (trimmed === title || (trimmed.length < 100 && index === 0)) {
+      return {
+        component: 'h1',
+        className: 'text-center font-bold mb-8 pb-6 border-b-2 cursor-pointer hover:bg-blue-50 transition-colors rounded p-3',
+        style: { 
+          color: '#1a365d', 
+          borderColor: '#1a365d',
+          fontSize: `${fontSize + 8}px`,
+          fontWeight: '800',
+          textShadow: '1px 1px 2px rgba(0,0,0,0.1)'
+        }
+      };
+    }
+    
+    // العناوين الفرعية الرئيسية
+    if (trimmed.includes('المقدمة') || trimmed.includes('الخاتمة') || trimmed.includes('المراجع') || 
+        trimmed.includes('التعريف والمفاهيم') || trimmed.includes('المحور')) {
+      return {
+        component: 'h2',
+        className: 'font-bold mt-8 mb-6 p-4 rounded-lg cursor-pointer hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-300 border-r-4',
+        style: { 
+          color: '#2563eb',
+          borderColor: '#2563eb',
+          fontSize: `${fontSize + 4}px`,
+          fontWeight: '700',
+          background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+          textShadow: '1px 1px 2px rgba(0,0,0,0.1)'
+        }
+      };
+    }
+    
+    // العناوين الفرعية المرقمة
+    if (trimmed.match(/^\d+\./) && trimmed.length < 200) {
+      return {
+        component: 'h3',
+        className: 'font-semibold mt-6 mb-4 p-3 rounded cursor-pointer hover:bg-amber-50 transition-colors border-r-2',
+        style: { 
+          color: '#d97706',
+          borderColor: '#d97706',
+          fontSize: `${fontSize + 2}px`,
+          fontWeight: '600',
+          background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)'
+        }
+      };
+    }
+    
+    // المراجع المرقمة
+    if (trimmed.match(/^\d+\s*[\.\-]/)) {
+      return {
+        component: 'div',
+        className: 'mr-6 mb-3 p-2 rounded cursor-pointer hover:bg-gray-50 transition-colors border-r-2',
+        style: { 
+          color: '#4b5563',
+          borderColor: '#9ca3af',
+          fontSize: `${fontSize - 1}px`,
+          lineHeight: 1.7,
+          background: 'linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)'
+        }
+      };
+    }
+    
+    // الفقرات العادية
+    return {
+      component: 'p',
+      className: 'mb-6 text-indent cursor-pointer hover:bg-gray-50 transition-colors rounded p-3 leading-relaxed',
+      style: { 
+        color: '#374151',
+        textIndent: '1.5cm',
+        lineHeight: 1.9,
+        fontWeight: '400',
+        fontSize: `${fontSize}px`
+      }
+    };
+  };
+
   return (
     <div className="w-full">
       {/* أزرار التحكم */}
@@ -252,10 +330,10 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
                 onChange={(e) => setLineHeight(Number(e.target.value))}
                 className="px-3 py-1 border border-blue-200 rounded-lg text-sm bg-white hover:border-blue-400 focus:border-blue-500"
               >
-                <option value={1.2}>1.2</option>
                 <option value={1.5}>1.5</option>
-                <option value={1.6}>1.6</option>
+                <option value={1.8}>1.8</option>
                 <option value={2.0}>2.0</option>
+                <option value={2.2}>2.2</option>
               </select>
             </div>
 
@@ -277,88 +355,30 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
             key={pageIndex}
             className="a4-page bg-white shadow-lg mb-8 p-8 relative"
             style={{
-              fontSize: `${fontSize}px`,
-              lineHeight: lineHeight,
-              textAlign: textAlign,
               fontFamily: "'Amiri', 'Arabic Typesetting', 'Times New Roman', serif",
+              textAlign: textAlign,
+              lineHeight: lineHeight,
             }}
           >
             <div className="content-area" dir="rtl">
               {pageContent.map((paragraph, paragraphIndex) => {
-                const trimmed = paragraph.trim();
+                const elementStyle = getElementStyle(paragraph, paragraphIndex);
+                const Component = elementStyle.component as any;
                 
-                // العنوان الرئيسي
-                if (trimmed === title || (trimmed.length < 100 && pageIndex === 0 && paragraphIndex === 0)) {
-                  return (
-                    <h1 
-                      key={paragraphIndex} 
-                      className="text-center font-bold mb-8 pb-6 border-b-2 cursor-pointer hover:bg-blue-50 transition-colors rounded p-3"
-                      style={{ 
-                        color: '#1a365d', 
-                        borderColor: '#1a365d',
-                        fontSize: `${fontSize + 6}px`,
-                        fontWeight: '700'
-                      }}
-                    >
-                      {trimmed}
-                    </h1>
-                  );
-                }
-                
-                // العناوين الفرعية
-                if (trimmed.match(/^\d+\./) || trimmed.includes('المقدمة') || trimmed.includes('الخاتمة') || trimmed.includes('المراجع')) {
-                  return (
-                    <h2 
-                      key={paragraphIndex} 
-                      className="font-bold mt-6 mb-4 underline cursor-pointer hover:bg-blue-50 transition-colors rounded p-2"
-                      style={{ 
-                        color: '#2d3748',
-                        fontSize: `${fontSize + 2}px`,
-                        fontWeight: '600'
-                      }}
-                    >
-                      {trimmed}
-                    </h2>
-                  );
-                }
-                
-                // المراجع المرقمة
-                if (trimmed.match(/^\d+\s*[\.\-]/)) {
-                  return (
-                    <div 
-                      key={paragraphIndex} 
-                      className="mr-6 mb-3 cursor-pointer hover:bg-gray-50 transition-colors rounded p-2"
-                      style={{ 
-                        color: '#4a5568',
-                        fontSize: `${fontSize - 1}px`,
-                        lineHeight: 1.7
-                      }}
-                    >
-                      {trimmed}
-                    </div>
-                  );
-                }
-                
-                // الفقرات العادية
                 return (
-                  <p 
-                    key={paragraphIndex} 
-                    className="mb-4 text-indent cursor-pointer hover:bg-gray-50 transition-colors rounded p-2"
-                    style={{ 
-                      color: '#2d3748',
-                      textIndent: '1.2cm',
-                      lineHeight: 1.8,
-                      fontWeight: '400'
-                    }}
+                  <Component
+                    key={paragraphIndex}
+                    className={elementStyle.className}
+                    style={elementStyle.style}
                   >
-                    {trimmed}
-                  </p>
+                    {paragraph.trim()}
+                  </Component>
                 );
               })}
             </div>
             
             {/* رقم الصفحة */}
-            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-sm text-gray-500 bg-white px-2 py-1 rounded">
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-sm text-gray-500 bg-white px-3 py-1 rounded-full shadow-sm border">
               {pageIndex + (researchSettings && (researchSettings.universityName || researchSettings.authorName) ? 2 : 1)}
             </div>
           </div>
