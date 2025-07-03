@@ -66,8 +66,29 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
     }
   };
 
+  const cleanDisplayContent = (text: string) => {
+    return text
+      // إزالة الرموز غير المرغوب فيها
+      .replace(/\*\*/g, '')
+      .replace(/\*/g, '')
+      .replace(/###/g, '')
+      .replace(/##/g, '')
+      .replace(/#{1,6}\s?/g, '')
+      .replace(/^\s*[\*\-\+•]\s+/gm, '')
+      // تنظيف علامات التنسيق
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/\*(.*?)\*/g, '$1')
+      .replace(/_\_(.*?)\_\_/g, '$1')
+      .replace(/_(.*?)_/g, '$1')
+      // إزالة النصوص غير المرغوب فيها
+      .replace(/تم توليد هذا المحتوى بواسطة.*?\n?/gi, '')
+      .replace(/أنت خبير أكاديمي.*?\n?/gi, '')
+      .replace(/اكتب.*?علميًا.*?\n?/gi, '');
+  };
+
   const formatContentIntoPages = (text: string) => {
-    const paragraphs = text.split('\n').filter(p => p.trim());
+    const cleanedText = cleanDisplayContent(text);
+    const paragraphs = cleanedText.split('\n').filter(p => p.trim());
     const pages: string[][] = [];
     let currentPage: string[] = [];
     let currentPageHeight = 0;
@@ -174,11 +195,12 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
                 size="sm"
                 onClick={decreaseFontSize}
                 disabled={fontSize <= 10}
+                className="hover:bg-blue-50"
               >
                 <ZoomOut className="w-4 h-4" />
                 تصغير
               </Button>
-              <span className="text-sm font-medium bg-blue-50 px-3 py-1 rounded">
+              <span className="text-sm font-medium bg-blue-100 px-3 py-1 rounded-lg text-blue-800">
                 {fontSize}px
               </span>
               <Button
@@ -186,6 +208,7 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
                 size="sm"
                 onClick={increaseFontSize}
                 disabled={fontSize >= 24}
+                className="hover:bg-blue-50"
               >
                 <ZoomIn className="w-4 h-4" />
                 تكبير
@@ -197,6 +220,7 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
                 variant={textAlign === 'right' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setTextAlign('right')}
+                className={textAlign === 'right' ? 'bg-blue-600 hover:bg-blue-700' : 'hover:bg-blue-50'}
               >
                 <AlignLeft className="w-4 h-4" />
                 يمين
@@ -205,6 +229,7 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
                 variant={textAlign === 'center' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setTextAlign('center')}
+                className={textAlign === 'center' ? 'bg-blue-600 hover:bg-blue-700' : 'hover:bg-blue-50'}
               >
                 <AlignCenter className="w-4 h-4" />
                 وسط
@@ -213,6 +238,7 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
                 variant={textAlign === 'justify' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setTextAlign('justify')}
+                className={textAlign === 'justify' ? 'bg-blue-600 hover:bg-blue-700' : 'hover:bg-blue-50'}
               >
                 <AlignJustify className="w-4 h-4" />
                 ضبط
@@ -224,7 +250,7 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
               <select
                 value={lineHeight}
                 onChange={(e) => setLineHeight(Number(e.target.value))}
-                className="px-3 py-1 border rounded text-sm bg-white"
+                className="px-3 py-1 border border-blue-200 rounded-lg text-sm bg-white hover:border-blue-400 focus:border-blue-500"
               >
                 <option value={1.2}>1.2</option>
                 <option value={1.5}>1.5</option>
@@ -233,10 +259,10 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
               </select>
             </div>
 
-            <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-2 rounded-lg">
+            <div className="flex items-center gap-2 text-sm text-blue-700 bg-blue-100 px-3 py-2 rounded-lg">
               <Edit3 className="w-4 h-4" />
               <span>حدد أي نص لتوليد محتوى جديد</span>
-              {isGenerating && <Sparkles className="w-4 h-4 animate-spin" />}
+              {isGenerating && <Sparkles className="w-4 h-4 animate-spin text-blue-600" />}
             </div>
           </div>
         </CardContent>
@@ -254,6 +280,7 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
               fontSize: `${fontSize}px`,
               lineHeight: lineHeight,
               textAlign: textAlign,
+              fontFamily: "'Amiri', 'Arabic Typesetting', 'Times New Roman', serif",
             }}
           >
             <div className="content-area" dir="rtl">
@@ -265,11 +292,12 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
                   return (
                     <h1 
                       key={paragraphIndex} 
-                      className="text-center font-bold mb-8 pb-6 border-b-2 cursor-pointer hover:bg-blue-50 transition-colors rounded p-2"
+                      className="text-center font-bold mb-8 pb-6 border-b-2 cursor-pointer hover:bg-blue-50 transition-colors rounded p-3"
                       style={{ 
                         color: '#1a365d', 
                         borderColor: '#1a365d',
-                        fontSize: `${fontSize + 6}px`
+                        fontSize: `${fontSize + 6}px`,
+                        fontWeight: '700'
                       }}
                     >
                       {trimmed}
@@ -285,7 +313,8 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
                       className="font-bold mt-6 mb-4 underline cursor-pointer hover:bg-blue-50 transition-colors rounded p-2"
                       style={{ 
                         color: '#2d3748',
-                        fontSize: `${fontSize + 2}px`
+                        fontSize: `${fontSize + 2}px`,
+                        fontWeight: '600'
                       }}
                     >
                       {trimmed}
@@ -293,28 +322,16 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
                   );
                 }
                 
-                // عناصر القائمة
-                if (trimmed.match(/^[•\-\*]/)) {
-                  return (
-                    <div 
-                      key={paragraphIndex} 
-                      className="mr-6 mb-3 cursor-pointer hover:bg-gray-50 transition-colors rounded p-1"
-                      style={{ color: '#4a5568' }}
-                    >
-                      {trimmed}
-                    </div>
-                  );
-                }
-                
-                // المراجع المفردة
+                // المراجع المرقمة
                 if (trimmed.match(/^\d+\s*[\.\-]/)) {
                   return (
                     <div 
                       key={paragraphIndex} 
-                      className="mr-6 mb-3 cursor-pointer hover:bg-gray-50 transition-colors rounded p-1"
+                      className="mr-6 mb-3 cursor-pointer hover:bg-gray-50 transition-colors rounded p-2"
                       style={{ 
                         color: '#4a5568',
-                        fontSize: `${fontSize - 1}px`
+                        fontSize: `${fontSize - 1}px`,
+                        lineHeight: 1.7
                       }}
                     >
                       {trimmed}
@@ -329,7 +346,9 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
                     className="mb-4 text-indent cursor-pointer hover:bg-gray-50 transition-colors rounded p-2"
                     style={{ 
                       color: '#2d3748',
-                      textIndent: '1cm'
+                      textIndent: '1.2cm',
+                      lineHeight: 1.8,
+                      fontWeight: '400'
                     }}
                   >
                     {trimmed}
@@ -339,7 +358,7 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
             </div>
             
             {/* رقم الصفحة */}
-            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-sm text-gray-500">
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-sm text-gray-500 bg-white px-2 py-1 rounded">
               {pageIndex + (researchSettings && (researchSettings.universityName || researchSettings.authorName) ? 2 : 1)}
             </div>
           </div>
