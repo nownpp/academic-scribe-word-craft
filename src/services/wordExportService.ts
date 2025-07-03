@@ -3,7 +3,9 @@ interface ResearchSettings {
   authorName: string;
   grade: string;
   supervisor: string;
-  includeResearchPage?: boolean;
+  universityName: string;
+  facultyName: string;
+  departmentName: string;
 }
 
 export async function exportToWord(
@@ -13,12 +15,12 @@ export async function exportToWord(
 ): Promise<void> {
   try {
     // إنشاء صفحة الغلاف إذا تم توفير إعدادات البحث
-    const coverPage = researchSettings && (researchSettings.authorName || researchSettings.grade || researchSettings.supervisor) ? `
+    const coverPage = researchSettings && (researchSettings.universityName || researchSettings.authorName) ? `
       <div class="cover-page">
         <div class="university-header">
-          <h1 class="university-name">الجامعة</h1>
-          <h2 class="faculty-name">كلية الآداب والعلوم</h2>
-          <h3 class="department-name">قسم البحوث العلمية</h3>
+          <h1 class="university-name">${researchSettings.universityName || 'الجامعة الأهلية'}</h1>
+          <h2 class="faculty-name">${researchSettings.facultyName || 'كلية الآداب والعلوم'}</h2>
+          <h3 class="department-name">${researchSettings.departmentName || 'قسم البحوث العلمية'}</h3>
         </div>
         
         <div class="research-title-section">
@@ -39,6 +41,13 @@ export async function exportToWord(
       <div class="page-break"></div>
     ` : '';
 
+    // تنظيف وتنسيق المحتوى
+    const cleanContent = content
+      .replace(/تم توليد هذا المحتوى بواسطة.*?Gemini.*?\n?/gi, '')
+      .replace(/✍️.*?اكتب مقالًا علميًا احترافيًا.*?\n/gi, '')
+      .replace(/باستخدام نموذج Gemini Flash.*?\n/gi, '')
+      .trim();
+
     // إنشاء محتوى HTML منسق للبحث العلمي  
     const htmlContent = `
       <!DOCTYPE html>
@@ -51,10 +60,11 @@ export async function exportToWord(
           body {
             font-family: 'Arabic Typesetting', 'Arial', 'Times New Roman', serif;
             font-size: 14px;
-            line-height: 1.5;
+            line-height: 1.6;
             margin: 2cm;
             text-align: justify;
             direction: rtl;
+            color: #2d3748;
           }
           
           /* صفحة الغلاف */
@@ -72,57 +82,57 @@ export async function exportToWord(
           }
           
           .university-name {
-            font-size: 28px;
+            font-size: 32px;
             font-weight: bold;
             color: #1a365d;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
           }
           
           .faculty-name {
-            font-size: 22px;
+            font-size: 24px;
             color: #2d3748;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
           }
           
           .department-name {
-            font-size: 18px;
+            font-size: 20px;
             color: #4a5568;
           }
           
           .research-title-section {
-            margin: 40px 0;
-            padding: 20px;
-            border: 3px solid #1a365d;
-            border-radius: 10px;
+            margin: 50px 0;
+            padding: 30px;
+            border: 4px solid #1a365d;
+            border-radius: 15px;
           }
           
           .research-title {
-            font-size: 24px;
+            font-size: 28px;
             font-weight: bold;
             color: #1a365d;
-            margin-bottom: 15px;
-            line-height: 1.3;
+            margin-bottom: 20px;
+            line-height: 1.4;
           }
           
           .research-subtitle {
-            font-size: 18px;
+            font-size: 20px;
             color: #4a5568;
             font-style: italic;
           }
           
           .research-info {
-            margin: 30px 0;
+            margin: 40px 0;
           }
           
           .info-line {
-            font-size: 16px;
-            margin: 10px 0;
+            font-size: 18px;
+            margin: 15px 0;
             color: #2d3748;
           }
           
           .academic-year {
-            margin-top: 40px;
-            font-size: 16px;
+            margin-top: 50px;
+            font-size: 18px;
             color: #4a5568;
           }
           
@@ -132,21 +142,22 @@ export async function exportToWord(
           }
           
           .main-title {
-            font-size: 20px;
+            font-size: 22px;
             font-weight: bold;
             color: #1a365d;
             text-align: center;
-            margin: 30px 0;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #1a365d;
+            margin: 40px 0;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #1a365d;
           }
           
           .section-title {
-            font-size: 16px;
+            font-size: 18px;
             font-weight: bold;
             color: #2d3748;
-            margin: 25px 0 15px 0;
+            margin: 30px 0 20px 0;
             text-decoration: underline;
+            text-underline-offset: 5px;
           }
           
           .content {
@@ -154,35 +165,39 @@ export async function exportToWord(
           }
           
           .paragraph {
-            margin-bottom: 15px;
-            text-indent: 1cm;
-            line-height: 1.6;
+            margin-bottom: 18px;
+            text-indent: 1.5cm;
+            line-height: 1.8;
             text-align: justify;
+            color: #2d3748;
           }
           
           .list-item {
-            margin-bottom: 8px;
-            padding-right: 20px;
+            margin-bottom: 12px;
+            padding-right: 25px;
+            color: #4a5568;
           }
           
           .references-section {
-            margin-top: 40px;
+            margin-top: 50px;
             page-break-before: always;
           }
           
           .reference-item {
-            margin-bottom: 10px;
-            padding-right: 20px;
+            margin-bottom: 15px;
+            padding-right: 25px;
             font-size: 13px;
+            color: #4a5568;
+            line-height: 1.6;
           }
           
           .footer {
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid #ccc;
+            margin-top: 50px;
+            padding-top: 25px;
+            border-top: 2px solid #e2e8f0;
             text-align: center;
             font-size: 12px;
-            color: #666;
+            color: #718096;
           }
           
           @page {
@@ -203,7 +218,7 @@ export async function exportToWord(
         ${coverPage}
         
         <div class="content">
-          ${content.split('\n').filter(p => p.trim()).map(paragraph => {
+          ${cleanContent.split('\n').filter(p => p.trim()).map(paragraph => {
             const trimmed = paragraph.trim();
             
             // العنوان الرئيسي
@@ -212,8 +227,8 @@ export async function exportToWord(
               return `<h1 class="main-title">${trimmed}</h1>`;
             }
             
-            // العناوين الفرعية (تبدأ برقم أو تحتوي على كلمات مفتاحية)
-            if (trimmed.match(/^\d+\./)) {
+            // العناوين الفرعية
+            if (trimmed.match(/^\d+\./) || trimmed.includes('المقدمة') || trimmed.includes('الخاتمة') || trimmed.includes('المراجع')) {
               return `<h2 class="section-title">${trimmed}</h2>`;
             }
             
@@ -238,8 +253,7 @@ export async function exportToWord(
         </div>
         
         <div class="footer">
-          <p>تم إنشاء هذا البحث بواسطة منصة البحوث العلمية</p>
-          <p>مدعوم بتقنية Gemini Flash AI</p>
+          <p>تم إنشاء هذا البحث بواسطة منصة البحوث العلمية الاحترافية</p>
           <p>تاريخ الإنشاء: ${new Date().toLocaleDateString('ar-EG')}</p>
         </div>
       </body>
