@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -48,7 +47,10 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
         language: 'arabic',
         sectionType: 'main_section',
         previousContent: context,
-        researchSettings
+        researchSettings: researchSettings ? {
+          ...researchSettings,
+          includeResearchPage: true
+        } : undefined
       });
       
       if (newContent) {

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,6 +18,15 @@ interface ResearchSection {
   completed: boolean;
 }
 
+interface ResearchSettings {
+  authorName: string;
+  grade: string;
+  supervisor: string;
+  universityName: string;
+  facultyName: string;
+  departmentName: string;
+}
+
 export const ArticleGenerator = () => {
   const [topic, setTopic] = useState('');
   const [wordCount, setWordCount] = useState('600');
@@ -31,7 +39,7 @@ export const ArticleGenerator = () => {
   const [isStepByStep, setIsStepByStep] = useState(false);
   
   // Research settings
-  const [researchSettings, setResearchSettings] = useState({
+  const [researchSettings, setResearchSettings] = useState<ResearchSettings>({
     authorName: '',
     grade: '',
     supervisor: '',
@@ -94,7 +102,10 @@ export const ArticleGenerator = () => {
         wordCount: parseInt(wordCount),
         language,
         sectionType: 'complete',
-        researchSettings
+        researchSettings: {
+          ...researchSettings,
+          includeResearchPage: true
+        }
       });
       
       if (article && article.trim()) {
@@ -161,7 +172,10 @@ export const ArticleGenerator = () => {
         sectionType,
         sectionIndex,
         previousContent,
-        researchSettings
+        researchSettings: {
+          ...researchSettings,
+          includeResearchPage: true
+        }
       });
 
       if (content && content.trim()) {
