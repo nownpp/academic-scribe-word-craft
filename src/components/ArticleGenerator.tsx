@@ -159,14 +159,19 @@ export const ArticleGenerator = () => {
     
     if (nextIndex < researchSections.length) {
       console.log(`Starting generation for section ${nextIndex}: ${researchSections[nextIndex].title}`);
-      // Add delay to ensure quality generation
+      // Ensure proper state management
+      setCurrentStep(nextIndex);
+      // Add delay to ensure quality generation and prevent rate limiting
       setTimeout(() => {
-        handleGenerateSection(nextIndex);
-      }, 2000);
+        if (isAutoGenerating || isCompletingAll) { // Double check flags are still active
+          handleGenerateSection(nextIndex);
+        }
+      }, 3000); // Increased delay for better generation quality
     } else {
       console.log('All sections completed!');
       setIsAutoGenerating(false);
       setIsCompletingAll(false);
+      setCurrentStep(0);
       toast.success('🎉 تم إكمال جميع مراحل البحث بنجاح!');
     }
   };
@@ -193,10 +198,8 @@ export const ArticleGenerator = () => {
         .map(section => `${section.title}:\n${section.content}`)
         .join('\n\n');
 
-      // استخدام العنوان المخصص من المستخدم أو العنوان الافتراضي
       const customTitle = researchSections[sectionIndex].title;
       const stageTitle = `${customTitle} - ${topic.trim()}`;
-
       const sectionWordCount = sectionIndex === researchSteps.length - 1 ? 150 : 600;
 
       const content = await generateArticleSection({
@@ -231,9 +234,15 @@ export const ArticleGenerator = () => {
         toast.success(`تم إنشاء ${customTitle} بنجاح! (${wordCount} كلمة)`);
         
         // Continue to next section if auto-generating or completing all
-        if (isAutoGenerating || isCompletingAll) {
+        if ((isAutoGenerating || isCompletingAll) && sectionIndex < researchSections.length - 1) {
           console.log(`Auto-continuing from section ${sectionIndex} to next section`);
           continueToNextSection(sectionIndex);
+        } else if (sectionIndex === researchSections.length - 1) {
+          // Last section completed
+          setIsAutoGenerating(false);
+          setIsCompletingAll(false);
+          setCurrentStep(0);
+          toast.success('🎉 تم إكمال جميع مراحل البحث بنجاح!');
         }
       } else {
         throw new Error('تم إنشاء محتوى فارغ');
@@ -244,6 +253,7 @@ export const ArticleGenerator = () => {
       toast.error(`فشل في إنشاء ${researchSections[sectionIndex].title}: ${errorMessage}`);
       setIsAutoGenerating(false);
       setIsCompletingAll(false);
+      setCurrentStep(0);
     } finally {
       setIsGenerating(false);
     }
@@ -486,9 +496,9 @@ export const ArticleGenerator = () => {
                   </div>
                 </div>
 
-                {/* معلومات التقدم */}
+                {/* معلومات التقدم المحسنة */}
                 {getCompletedSections() > 0 && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
                     <div className="flex items-center gap-2 text-green-700 mb-2">
                       <CheckCircle className="w-5 h-5" />
                       <span className="font-medium">تقدم البحث</span>
@@ -496,6 +506,12 @@ export const ArticleGenerator = () => {
                     <div className="text-sm text-green-600">
                       <p>المراحل المكتملة: {getCompletedSections()} من {researchSteps.length}</p>
                       <p>إجمالي الكلمات: {getTotalWords().toLocaleString()} كلمة</p>
+                      <div className="w-full bg-green-200 rounded-full h-2 mt-2">
+                        <div 
+                          className="bg-green-600 h-2 rounded-full transition-all duration-300" 
+                          style={{ width: `${(getCompletedSections() / researchSteps.length) * 100}%` }}
+                        ></div>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -510,16 +526,23 @@ export const ArticleGenerator = () => {
                   </div>
                 )}
 
-                {/* Current generation status */}
+                {/* Current generation status - محسن */}
                 {(isGenerating || isAutoGenerating || isCompletingAll) && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 shadow-sm">
                     <div className="flex items-center gap-2 text-blue-700 mb-2">
                       <Loader2 className="w-5 h-5 animate-spin" />
                       <span className="font-medium">جاري الكتابة...</span>
                     </div>
-                    <div className="text-sm text-blue-600">
-                      <p>المرحلة الحالية: {researchSections[currentStep]?.title}</p>
-                      <p>الوضع: {isCompletingAll ? 'إكمال جميع المراحل' : 'كتابة مرحلية'}</p>
+                    <div className="text-sm text-blue-600 space-y-1">
+                      <p><strong>المرحلة الحالية:</strong> {researchSections[currentStep]?.title}</p>
+                      <p><strong>الوضع:</strong> {isCompletingAll ? 'إكمال جميع المراحل تلقائياً' : 'كتابة مرحلية'}</p>
+                      <p><strong>التقدم:</strong> {currentStep + 1} من {researchSections.length}</p>
+                      <div className="w-full bg-blue-200 rounded-full h-2 mt-2">
+                        <div 
+                          className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                          style={{ width: `${((currentStep + 1) / researchSections.length) * 100}%` }}
+                        ></div>
+                      </div>
                     </div>
                   </div>
                 )}

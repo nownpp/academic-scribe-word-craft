@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -179,33 +178,49 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
   const getElementStyle = (text: string, index: number) => {
     const trimmed = text.trim();
     
-    // العنوان الرئيسي
+    // العنوان الرئيسي للبحث
     if (trimmed === title || (trimmed.length < 100 && index === 0)) {
       return {
         component: 'h1',
-        className: 'text-center font-bold mb-8 pb-6 border-b-2 cursor-pointer hover:bg-blue-50 transition-colors rounded p-3',
+        className: 'text-center font-bold mb-10 pb-8 border-b-4 cursor-pointer hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50 transition-all duration-300 rounded-lg p-6 shadow-lg',
         style: { 
-          color: '#1a365d', 
-          borderColor: '#1a365d',
-          fontSize: `${fontSize + 8}px`,
-          fontWeight: '800',
-          textShadow: '1px 1px 2px rgba(0,0,0,0.1)'
+          color: '#1e40af', // أزرق قوي
+          borderColor: '#1e40af',
+          fontSize: `${fontSize + 12}px`,
+          fontWeight: '900',
+          textShadow: '2px 2px 4px rgba(0,0,0,0.1)',
+          background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)'
         }
       };
     }
     
-    // العناوين الفرعية الرئيسية
-    if (trimmed.includes('المقدمة') || trimmed.includes('الخاتمة') || trimmed.includes('المراجع') || 
-        trimmed.includes('التعريف والمفاهيم') || trimmed.includes('المحور')) {
+    // العناوين الرئيسية (المقدمة، الخاتمة، المراجع)
+    if (trimmed.includes('المقدمة') || trimmed.includes('الخاتمة') || trimmed.includes('المراجع')) {
       return {
         component: 'h2',
-        className: 'font-bold mt-8 mb-6 p-4 rounded-lg cursor-pointer hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-300 border-r-4',
+        className: 'font-bold mt-10 mb-8 p-6 rounded-xl cursor-pointer hover:shadow-lg transition-all duration-300 border-r-8 shadow-md',
         style: { 
-          color: '#2563eb',
-          borderColor: '#2563eb',
+          color: '#dc2626', // أحمر قوي
+          borderColor: '#dc2626',
+          fontSize: `${fontSize + 6}px`,
+          fontWeight: '800',
+          background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
+          textShadow: '1px 1px 3px rgba(0,0,0,0.1)'
+        }
+      };
+    }
+    
+    // العناوين الفرعية (التعريف والمحاور)
+    if (trimmed.includes('التعريف والمفاهيم') || trimmed.includes('المحور')) {
+      return {
+        component: 'h2',
+        className: 'font-bold mt-8 mb-6 p-5 rounded-lg cursor-pointer hover:shadow-md transition-all duration-300 border-r-6 shadow-sm',
+        style: { 
+          color: '#7c3aed', // بنفسجي
+          borderColor: '#7c3aed',
           fontSize: `${fontSize + 4}px`,
           fontWeight: '700',
-          background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+          background: 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)',
           textShadow: '1px 1px 2px rgba(0,0,0,0.1)'
         }
       };
@@ -215,42 +230,45 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
     if (trimmed.match(/^\d+\./) && trimmed.length < 200) {
       return {
         component: 'h3',
-        className: 'font-semibold mt-6 mb-4 p-3 rounded cursor-pointer hover:bg-amber-50 transition-colors border-r-2',
+        className: 'font-semibold mt-6 mb-4 p-4 rounded-lg cursor-pointer hover:shadow-sm transition-all duration-300 border-r-4',
         style: { 
-          color: '#d97706',
-          borderColor: '#d97706',
+          color: '#059669', // أخضر
+          borderColor: '#059669',
           fontSize: `${fontSize + 2}px`,
           fontWeight: '600',
-          background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)'
+          background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'
         }
       };
     }
     
-    // المراجع المرقمة
+    // المراجع المرقمة - تحسين خاص
     if (trimmed.match(/^\d+\s*[\.\-]/)) {
       return {
         component: 'div',
-        className: 'mr-6 mb-3 p-2 rounded cursor-pointer hover:bg-gray-50 transition-colors border-r-2',
+        className: 'mr-4 mb-4 p-4 rounded-lg cursor-pointer hover:shadow-md transition-all duration-300 border-2 border-dashed shadow-sm',
         style: { 
-          color: '#4b5563',
-          borderColor: '#9ca3af',
+          color: '#374151',
+          borderColor: '#6b7280',
           fontSize: `${fontSize - 1}px`,
-          lineHeight: 1.7,
-          background: 'linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)'
+          lineHeight: 1.8,
+          background: 'linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
         }
       };
     }
     
-    // الفقرات العادية
+    // الفقرات العادية - تحسين مميز
     return {
       component: 'p',
-      className: 'mb-6 text-indent cursor-pointer hover:bg-gray-50 transition-colors rounded p-3 leading-relaxed',
+      className: 'mb-6 text-indent cursor-pointer hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50 transition-all duration-300 rounded-lg p-4 leading-relaxed shadow-sm border border-transparent hover:border-blue-200',
       style: { 
-        color: '#374151',
-        textIndent: '1.5cm',
-        lineHeight: 1.9,
+        color: '#1f2937', // لون داكن للنص
+        textIndent: '2cm',
+        lineHeight: 2.0,
         fontWeight: '400',
-        fontSize: `${fontSize}px`
+        fontSize: `${fontSize}px`,
+        background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+        textAlign: 'justify' as const
       }
     };
   };
@@ -258,11 +276,11 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
   return (
     <div className="w-full">
       {/* أزرار التحكم */}
-      <Card className="mb-6">
+      <Card className="mb-6 shadow-md">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-blue-900">
             <Type className="w-5 h-5" />
-            أدوات التحرير والتنسيق
+            أدوات التحرير والتنسيق المتقدمة
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -273,12 +291,12 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
                 size="sm"
                 onClick={decreaseFontSize}
                 disabled={fontSize <= 10}
-                className="hover:bg-blue-50"
+                className="hover:bg-blue-50 border-blue-200"
               >
                 <ZoomOut className="w-4 h-4" />
                 تصغير
               </Button>
-              <span className="text-sm font-medium bg-blue-100 px-3 py-1 rounded-lg text-blue-800">
+              <span className="text-sm font-medium bg-gradient-to-r from-blue-100 to-indigo-100 px-4 py-2 rounded-lg text-blue-800 shadow-sm">
                 {fontSize}px
               </span>
               <Button
@@ -286,7 +304,7 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
                 size="sm"
                 onClick={increaseFontSize}
                 disabled={fontSize >= 24}
-                className="hover:bg-blue-50"
+                className="hover:bg-blue-50 border-blue-200"
               >
                 <ZoomIn className="w-4 h-4" />
                 تكبير
@@ -298,7 +316,7 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
                 variant={textAlign === 'right' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setTextAlign('right')}
-                className={textAlign === 'right' ? 'bg-blue-600 hover:bg-blue-700' : 'hover:bg-blue-50'}
+                className={textAlign === 'right' ? 'bg-blue-600 hover:bg-blue-700' : 'hover:bg-blue-50 border-blue-200'}
               >
                 <AlignLeft className="w-4 h-4" />
                 يمين
@@ -307,7 +325,7 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
                 variant={textAlign === 'center' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setTextAlign('center')}
-                className={textAlign === 'center' ? 'bg-blue-600 hover:bg-blue-700' : 'hover:bg-blue-50'}
+                className={textAlign === 'center' ? 'bg-blue-600 hover:bg-blue-700' : 'hover:bg-blue-50 border-blue-200'}
               >
                 <AlignCenter className="w-4 h-4" />
                 وسط
@@ -316,7 +334,7 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
                 variant={textAlign === 'justify' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setTextAlign('justify')}
-                className={textAlign === 'justify' ? 'bg-blue-600 hover:bg-blue-700' : 'hover:bg-blue-50'}
+                className={textAlign === 'justify' ? 'bg-blue-600 hover:bg-blue-700' : 'hover:bg-blue-50 border-blue-200'}
               >
                 <AlignJustify className="w-4 h-4" />
                 ضبط
@@ -328,7 +346,7 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
               <select
                 value={lineHeight}
                 onChange={(e) => setLineHeight(Number(e.target.value))}
-                className="px-3 py-1 border border-blue-200 rounded-lg text-sm bg-white hover:border-blue-400 focus:border-blue-500"
+                className="px-3 py-2 border border-blue-200 rounded-lg text-sm bg-white hover:border-blue-400 focus:border-blue-500 shadow-sm"
               >
                 <option value={1.5}>1.5</option>
                 <option value={1.8}>1.8</option>
@@ -337,7 +355,7 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
               </select>
             </div>
 
-            <div className="flex items-center gap-2 text-sm text-blue-700 bg-blue-100 px-3 py-2 rounded-lg">
+            <div className="flex items-center gap-2 text-sm text-blue-700 bg-gradient-to-r from-blue-100 to-indigo-100 px-4 py-2 rounded-lg shadow-sm">
               <Edit3 className="w-4 h-4" />
               <span>حدد أي نص لتوليد محتوى جديد</span>
               {isGenerating && <Sparkles className="w-4 h-4 animate-spin text-blue-600" />}
@@ -353,7 +371,7 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
         {pages.map((pageContent, pageIndex) => (
           <div
             key={pageIndex}
-            className="a4-page bg-white shadow-lg mb-8 p-8 relative"
+            className="a4-page bg-white shadow-xl mb-8 p-8 relative border border-gray-200"
             style={{
               fontFamily: "'Amiri', 'Arabic Typesetting', 'Times New Roman', serif",
               textAlign: textAlign,
@@ -377,9 +395,9 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
               })}
             </div>
             
-            {/* رقم الصفحة */}
-            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-sm text-gray-500 bg-white px-3 py-1 rounded-full shadow-sm border">
-              {pageIndex + (researchSettings && (researchSettings.universityName || researchSettings.authorName) ? 2 : 1)}
+            {/* رقم الصفحة محسن */}
+            <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 text-sm text-gray-600 bg-gradient-to-r from-gray-100 to-gray-200 px-4 py-2 rounded-full shadow-md border">
+              صفحة {pageIndex + (researchSettings && (researchSettings.universityName || researchSettings.authorName) ? 2 : 1)}
             </div>
           </div>
         ))}
