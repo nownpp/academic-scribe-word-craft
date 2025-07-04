@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -71,7 +70,7 @@ export const ArticleGenerator = () => {
             onChange={(e) => setTopic(e.target.value)}
           />
 
-          <div className="flex gap-4 justify-center">
+          <div className="flex gap-4">
             <Button
               type="submit"
               disabled={!topic.trim() || isGenerating}
