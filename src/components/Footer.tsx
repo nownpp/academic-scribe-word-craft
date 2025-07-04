@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Heart, Code, BookOpen } from 'lucide-react';
+import { Heart, Code, BookOpen, MessageCircle } from 'lucide-react';
 
 export const Footer = () => {
   return (
@@ -23,10 +23,20 @@ export const Footer = () => {
             <span className="font-semibold text-blue-400">Yousef</span>
             <Code className="w-4 h-4 text-blue-400" />
           </div>
+
+          {/* النص المتحرك */}
+          <div className="mb-6 overflow-hidden">
+            <div className="animate-marquee whitespace-nowrap text-blue-400 font-semibold">
+              تطوير يوسف • تطوير يوسف • تطوير يوسف • تطوير يوسف • تطوير يوسف • تطوير يوسف • تطوير يوسف
+            </div>
+          </div>
           
           <div className="border-t border-gray-700 pt-6">
             <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-400">
-              <span>• مدعوم بتقنية Gemini AI من Google</span>
+              <div className="flex items-center gap-2">
+                <MessageCircle className="w-4 h-4 text-green-500" />
+                <span>للتواصل مع المطور</span>
+              </div>
               <span>• تصدير مباشر إلى ملفات Word</span>
               <span>• محتوى علمي عالي الجودة</span>
             </div>

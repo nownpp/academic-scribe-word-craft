@@ -9,9 +9,11 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
       <Header />
-      <Hero />
-      <ArticleGenerator />
-      <Footer />
+      <div className="pt-8">
+        <Hero />
+        <ArticleGenerator />
+        <Footer />
+      </div>
     </div>
   );
 };

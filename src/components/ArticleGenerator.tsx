@@ -1,754 +1,119 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Loader2, FileText, Download, Sparkles, AlertCircle, Settings, PlayCircle, Pause, Clock, CheckCircle, Edit, Save, RotateCcw } from 'lucide-react';
-import { toast } from 'sonner';
-import { generateArticleSection } from '@/services/geminiService';
-import { exportToWord } from '@/services/wordExportService';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ResearchViewer } from '@/components/ResearchViewer';
-
-interface ResearchSection {
-  title: string;
-  content: string;
-  completed: boolean;
-  wordCount: number;
-}
-
-interface ResearchSettings {
-  authorName: string;
-  grade: string;
-  supervisor: string;
-  universityName: string;
-  facultyName: string;
-  departmentName: string;
-  includeResearchPage: boolean;
-}
+import { Textarea } from '@/components/ui/textarea';
+import { PenTool, Download } from 'lucide-react';
+import { generateArticle } from '@/lib/article-generator';
+import { saveAs } from 'file-saver';
+import { Document, Packer, Paragraph, TextRun } from 'docx';
 
 export const ArticleGenerator = () => {
   const [topic, setTopic] = useState('');
-  const [wordCount, setWordCount] = useState('600');
-  const [language, setLanguage] = useState('arabic');
-  const [generatedArticle, setGeneratedArticle] = useState('');
+  const [generatedContent, setGeneratedContent] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
-  const [error, setError] = useState('');
-  const [currentStep, setCurrentStep] = useState(0);
-  const [isStepByStep, setIsStepByStep] = useState(false);
-  const [isAutoGenerating, setIsAutoGenerating] = useState(false);
-  const [isCompletingAll, setIsCompletingAll] = useState(false);
-  const [editingTitles, setEditingTitles] = useState(false);
-  
-  // Research settings
-  const [researchSettings, setResearchSettings] = useState<ResearchSettings>({
-    authorName: '',
-    grade: '',
-    supervisor: '',
-    universityName: '',
-    facultyName: '',
-    departmentName: '',
-    includeResearchPage: true
-  });
 
-  // Research sections with better Arabic titles - now editable
-  const [researchSections, setResearchSections] = useState<ResearchSection[]>([
-    { title: 'المقدمة', content: '', completed: false, wordCount: 0 },
-    { title: 'التعريف والمفاهيم الأساسية', content: '', completed: false, wordCount: 0 },
-    { title: 'المحور الأول', content: '', completed: false, wordCount: 0 },
-    { title: 'المحور الثاني', content: '', completed: false, wordCount: 0 },
-    { title: 'المحور الثالث', content: '', completed: false, wordCount: 0 },
-    { title: 'الخاتمة', content: '', completed: false, wordCount: 0 },
-    { title: 'المراجع', content: '', completed: false, wordCount: 0 },
-  ]);
-
-  // Default titles for reset functionality
-  const defaultSectionTitles = [
-    'المقدمة',
-    'التعريف والمفاهيم الأساسية',
-    'المحور الأول',
-    'المحور الثاني',
-    'المحور الثالث',
-    'الخاتمة',
-    'المراجع'
-  ];
-
-  const researchSteps = [
-    'المقدمة وأهمية الموضوع',
-    'التعريف والمفاهيم الأساسية للموضوع',
-    'المحور الأول من البحث',
-    'المحور الثاني من البحث', 
-    'المحور الثالث من البحث',
-    'الخاتمة والنتائج والتوصيات',
-    'المراجع والمصادر العلمية'
-  ];
-
-  // Create stage-specific titles for API calls
-  const createStageTitle = (stageIndex: number, topic: string) => {
-    const stageNames = [
-      'مقدمة بحث عن',
-      'تعريف وشرح مفاهيم',
-      'المحور الأول في دراسة',
-      'المحور الثاني في تحليل',
-      'المحور الثالث في بحث',
-      'خاتمة ونتائج بحث عن',
-      'مراجع ومصادر بحث'
-    ];
-    
-    return `${stageNames[stageIndex]} ${topic}`;
-  };
-
-  const cleanAndFormatContent = (content: string) => {
-    // إزالة العبارات غير المرغوب فيها والرموز
-    let cleaned = content
-      .replace(/تم توليد هذا المحتوى بواسطة.*?Gemini.*?\n?/gi, '')
-      .replace(/✍️.*?اكتب مقالًا علميًا احترافيًا.*?\n/gi, '')
-      .replace(/باستخدام نموذج Gemini Flash.*?\n/gi, '')
-      .replace(/تم إنشاء.*?بواسطة.*?AI.*?\n?/gi, '')
-      .replace(/Generated by.*?Gemini.*?\n?/gi, '')
-      .replace(/أنت خبير أكاديمي.*?\n/gi, '')
-      .replace(/اكتب.*?علميًا.*?\n/gi, '')
-      // إزالة الرموز غير المرغوب فيها
-      .replace(/\*\*/g, '')
-      .replace(/\*/g, '')
-      .replace(/###/g, '')
-      .replace(/##/g, '')
-      .replace(/#{1,6}\s?/g, '')
-      .replace(/^\s*[\*\-\+]\s+/gm, '')
-      .replace(/^\s*\d+\.\s*[\*\-\+]\s+/gm, '')
-      // تنظيف علامات التنسيق
-      .replace(/\*\*(.*?)\*\*/g, '$1')
-      .replace(/\*(.*?)\*/g, '$1')
-      .replace(/_\_(.*?)\_\_/g, '$1')
-      .replace(/_(.*?)_/g, '$1');
-    
-    // تنظيف الأسطر الفارغة المتتالية
-    cleaned = cleaned.replace(/\n\s*\n\s*\n/g, '\n\n');
-    
-    return cleaned.trim();
-  };
-
-  const countWords = (text: string) => {
-    return text.trim().split(/\s+/).filter(word => word.length > 0).length;
-  };
-
-  // Handle section title editing
-  const handleTitleChange = (index: number, newTitle: string) => {
-    const updatedSections = [...researchSections];
-    updatedSections[index] = { ...updatedSections[index], title: newTitle };
-    setResearchSections(updatedSections);
-  };
-
-  // Reset titles to default
-  const resetTitlesToDefault = () => {
-    const updatedSections = researchSections.map((section, index) => ({
-      ...section,
-      title: defaultSectionTitles[index]
-    }));
-    setResearchSections(updatedSections);
-    toast.success('تم إعادة تعيين العناوين للوضع الافتراضي');
-  };
-
-  // Continue to next section automatically
-  const continueToNextSection = (currentIndex: number) => {
-    console.log(`Continuing to next section after ${currentIndex}`);
-    const nextIndex = currentIndex + 1;
-    
-    if (nextIndex < researchSections.length) {
-      console.log(`Starting generation for section ${nextIndex}: ${researchSections[nextIndex].title}`);
-      // Ensure proper state management
-      setCurrentStep(nextIndex);
-      // Add delay to ensure quality generation and prevent rate limiting
-      setTimeout(() => {
-        if (isAutoGenerating || isCompletingAll) { // Double check flags are still active
-          handleGenerateSection(nextIndex);
-        }
-      }, 3000); // Increased delay for better generation quality
-    } else {
-      console.log('All sections completed!');
-      setIsAutoGenerating(false);
-      setIsCompletingAll(false);
-      setCurrentStep(0);
-      toast.success('🎉 تم إكمال جميع مراحل البحث بنجاح!');
-    }
-  };
-
-  const handleGenerateSection = async (sectionIndex: number) => {
-    if (!topic.trim()) {
-      toast.error('يرجى إدخال موضوع المقال');
-      return;
-    }
-
-    console.log(`Starting generation for section ${sectionIndex}: ${researchSections[sectionIndex].title}`);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setIsGenerating(true);
-    setCurrentStep(sectionIndex);
-    
     try {
-      const sectionType = sectionIndex === 0 ? 'introduction' :
-                         sectionIndex === 1 ? 'definition' :
-                         sectionIndex === researchSteps.length - 2 ? 'conclusion' :
-                         sectionIndex === researchSteps.length - 1 ? 'references' :
-                         'main_section';
-
-      const previousContent = researchSections.slice(0, sectionIndex)
-        .filter(section => section.completed)
-        .map(section => `${section.title}:\n${section.content}`)
-        .join('\n\n');
-
-      const customTitle = researchSections[sectionIndex].title;
-      const stageTitle = `${customTitle} - ${topic.trim()}`;
-      const sectionWordCount = sectionIndex === researchSteps.length - 1 ? 150 : 600;
-
-      const content = await generateArticleSection({
-        topic: stageTitle,
-        wordCount: sectionWordCount,
-        language,
-        sectionType,
-        sectionIndex,
-        previousContent,
-        researchSettings
-      });
-
-      if (content && content.trim()) {
-        const cleanedContent = cleanAndFormatContent(content);
-        const wordCount = countWords(cleanedContent);
-        const updatedSections = [...researchSections];
-        updatedSections[sectionIndex] = {
-          ...updatedSections[sectionIndex],
-          content: cleanedContent,
-          completed: true,
-          wordCount: wordCount
-        };
-        setResearchSections(updatedSections);
-        
-        const completeArticle = updatedSections
-          .filter(section => section.completed)
-          .map(section => `${section.title}\n\n${section.content}`)
-          .join('\n\n');
-        
-        setGeneratedArticle(completeArticle);
-        console.log(`Section ${sectionIndex} completed successfully with ${wordCount} words`);
-        toast.success(`تم إنشاء ${customTitle} بنجاح! (${wordCount} كلمة)`);
-        
-        // Continue to next section if auto-generating or completing all
-        if ((isAutoGenerating || isCompletingAll) && sectionIndex < researchSections.length - 1) {
-          console.log(`Auto-continuing from section ${sectionIndex} to next section`);
-          continueToNextSection(sectionIndex);
-        } else if (sectionIndex === researchSections.length - 1) {
-          // Last section completed
-          setIsAutoGenerating(false);
-          setIsCompletingAll(false);
-          setCurrentStep(0);
-          toast.success('🎉 تم إكمال جميع مراحل البحث بنجاح!');
-        }
-      } else {
-        throw new Error('تم إنشاء محتوى فارغ');
-      }
+      const content = await generateArticle(topic);
+      setGeneratedContent(content);
     } catch (error) {
-      console.error('خطأ في إنشاء القسم:', error);
-      const errorMessage = error instanceof Error ? error.message : 'حدث خطأ غير متوقع';
-      toast.error(`فشل في إنشاء ${researchSections[sectionIndex].title}: ${errorMessage}`);
-      setIsAutoGenerating(false);
-      setIsCompletingAll(false);
-      setCurrentStep(0);
+      console.error('Error generating article:', error);
+      setGeneratedContent('Error generating article. Please try again.');
     } finally {
       setIsGenerating(false);
     }
   };
 
-  // إكمال جميع المراحل المتبقية
-  const handleCompleteAllStages = async () => {
-    if (!topic.trim()) {
-      toast.error('يرجى إدخال موضوع المقال');
-      return;
-    }
-
-    const firstIncompleteIndex = researchSections.findIndex(section => !section.completed);
-    if (firstIncompleteIndex === -1) {
-      toast.info('جميع المراحل مكتملة بالفعل!');
-      return;
-    }
-
-    console.log(`Starting complete all stages from index: ${firstIncompleteIndex}`);
-    setIsCompletingAll(true);
-    setIsAutoGenerating(true); // Enable both flags for proper continuation
-    toast.info(`بدء إكمال المراحل من: ${researchSections[firstIncompleteIndex].title}`);
-    
-    await handleGenerateSection(firstIncompleteIndex);
-  };
-
-  const stopAllGeneration = () => {
-    console.log('Stopping all generation processes');
-    setIsAutoGenerating(false);
-    setIsCompletingAll(false);
-    toast.info('تم إيقاف جميع عمليات التوليد');
-  };
-
-  const handleAutoGenerate = async () => {
-    if (!topic.trim()) {
-      toast.error('يرجى إدخال موضوع المقال');
-      return;
-    }
-
-    console.log('Starting auto-generation from first section');
-    setIsAutoGenerating(true);
-    setIsCompletingAll(true); // Enable both flags for proper continuation
-    setIsStepByStep(true);
-    
-    await handleGenerateSection(0);
-  };
-
-  const stopAutoGeneration = () => {
-    setIsAutoGenerating(false);
-    setIsCompletingAll(false);
-    toast.info('تم إيقاف التوليد التلقائي');
-  };
-
   const handleExportToWord = async () => {
-    if (!generatedArticle) {
-      toast.error('لا يوجد مقال للتصدير');
+    if (!generatedContent) {
+      alert('No content to export!');
       return;
     }
 
-    setIsExporting(true);
+    const doc = new Document({
+      sections: [{
+        children: [
+          new Paragraph({
+            children: [new TextRun(generatedContent)],
+          }),
+        ],
+      }],
+    });
+
     try {
-      await exportToWord(generatedArticle, topic, researchSettings);
-      toast.success('تم تصدير المقال إلى Word بنجاح!');
+      const blob = await Packer.toBlob(doc);
+      saveAs(blob, 'generated-article.docx');
     } catch (error) {
-      console.error('خطأ في تصدير المقال:', error);
-      toast.error('حدث خطأ أثناء تصدير المقال');
-    } finally {
-      setIsExporting(false);
+      console.error('Error exporting to Word:', error);
+      alert('Failed to export to Word. Please try again.');
     }
-  };
-
-  const getTotalWords = () => {
-    return researchSections.reduce((total, section) => total + section.wordCount, 0);
-  };
-
-  const getCompletedSections = () => {
-    return researchSections.filter(section => section.completed).length;
   };
 
   return (
-    <section className="py-20 bg-white">
-      <div className="container mx-auto px-6">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            ✍️ منصة كتابة الأبحاث العلمية الاحترافية
-          </h2>
-        </div>
+    <section className="container py-12">
+      <div className="max-w-3xl mx-auto text-center">
+        <h2 className="text-3xl font-bold mb-8 text-gray-800">
+          اكتب مقالتك العلمية الآن
+        </h2>
+        <p className="text-gray-600 mb-6">
+          أدخل عنوان المقال أو الموضوع الذي ترغب في الكتابة عنه، وسنقوم بإنشاء مقال علمي متكامل لك.
+        </p>
 
-        <div className="max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Input Form */}
-            <Card className="shadow-lg border-0 bg-gradient-to-br from-blue-50 to-indigo-50">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between text-blue-900">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-6 h-6" />
-                    إعدادات البحث العلمي
-                  </div>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <Settings className="w-4 h-4 mr-2" />
-                        إعداد البحث
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>معلومات البحث (اختيارية)</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4 pt-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="universityName">اسم الجامعة</Label>
-                          <Input
-                            id="universityName"
-                            value={researchSettings.universityName}
-                            onChange={(e) => setResearchSettings(prev => ({
-                              ...prev,
-                              universityName: e.target.value
-                            }))}
-                            placeholder="أدخل اسم الجامعة"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="facultyName">اسم الكلية</Label>
-                          <Input
-                            id="facultyName"
-                            value={researchSettings.facultyName}
-                            onChange={(e) => setResearchSettings(prev => ({
-                              ...prev,
-                              facultyName: e.target.value
-                            }))}
-                            placeholder="مثال: كلية الآداب والعلوم"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="departmentName">اسم القسم</Label>
-                          <Input
-                            id="departmentName"
-                            value={researchSettings.departmentName}
-                            onChange={(e) => setResearchSettings(prev => ({
-                              ...prev,
-                              departmentName: e.target.value
-                            }))}
-                            placeholder="مثال: قسم البحوث العلمية"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="authorName">اسم معد البحث</Label>
-                          <Input
-                            id="authorName"
-                            value={researchSettings.authorName}
-                            onChange={(e) => setResearchSettings(prev => ({
-                              ...prev,
-                              authorName: e.target.value
-                            }))}
-                            placeholder="أدخل اسم الباحث"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="grade">الفرقة/المستوى</Label>
-                          <Input
-                            id="grade"
-                            value={researchSettings.grade}
-                            onChange={(e) => setResearchSettings(prev => ({
-                              ...prev,
-                              grade: e.target.value
-                            }))}
-                            placeholder="مثال: الffرقة الثالثة"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="supervisor">إشراف</Label>
-                          <Input
-                            id="supervisor"
-                            value={researchSettings.supervisor}
-                            onChange={(e) => setResearchSettings(prev => ({
-                              ...prev,
-                              supervisor: e.target.value
-                            }))}
-                            placeholder="أدخل اسم المشرف"
-                          />
-                        </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="topic" className="text-sm font-medium text-gray-700">
-                    موضوع البحث العلمي *
-                  </Label>
-                  <Textarea
-                    id="topic"
-                    placeholder="مثال: آثار الاحتباس الحراري على الأمن الغذائي العالمي"
-                    value={topic}
-                    onChange={(e) => setTopic(e.target.value)}
-                    className="min-h-[120px] resize-none border-blue-200 focus:border-blue-400"
-                  />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            type="text"
+            placeholder="أدخل عنوان المقال أو الموضوع"
+            className="w-full px-4 py-3 rounded-xl border-gray-300 focus:ring-blue-500 focus:border-blue-500 shadow-sm text-right"
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+          />
+
+          <div className="flex gap-4">
+            <Button
+              type="submit"
+              disabled={!topic.trim() || isGenerating}
+              className="bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white font-semibold py-3 px-8 rounded-xl shadow-lg transform transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            >
+              {isGenerating ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>جاري التوليد...</span>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="wordCount" className="text-sm font-medium text-gray-700">
-                      الحد الأدنى للكلمات
-                    </Label>
-                    <Select value={wordCount} onValueChange={setWordCount}>
-                      <SelectTrigger className="border-blue-200 focus:border-blue-400">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="600">600 كلمة</SelectItem>
-                        <SelectItem value="1000">1000 كلمة</SelectItem>
-                        <SelectItem value="1500">1500 كلمة</SelectItem>
-                        <SelectItem value="2000">2000 كلمة</SelectItem>
-                        <SelectItem value="3000">3000 كلمة</SelectItem>
-                        <SelectItem value="5000">5000 كلمة</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="language" className="text-sm font-medium text-gray-700">
-                      اللغة
-                    </Label>
-                    <Select value={language} onValueChange={setLanguage}>
-                      <SelectTrigger className="border-blue-200 focus:border-blue-400">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="arabic">العربية</SelectItem>
-                        <SelectItem value="english">الإنجليزية</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <PenTool className="w-4 h-4" />
+                  <span>توليد البحث</span>
                 </div>
+              )}
+            </Button>
 
-                {/* معلومات التقدم المحسنة */}
-                {getCompletedSections() > 0 && (
-                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
-                    <div className="flex items-center gap-2 text-green-700 mb-2">
-                      <CheckCircle className="w-5 h-5" />
-                      <span className="font-medium">تقدم البحث</span>
-                    </div>
-                    <div className="text-sm text-green-600">
-                      <p>المراحل المكتملة: {getCompletedSections()} من {researchSteps.length}</p>
-                      <p>إجمالي الكلمات: {getTotalWords().toLocaleString()} كلمة</p>
-                      <div className="w-full bg-green-200 rounded-full h-2 mt-2">
-                        <div 
-                          className="bg-green-600 h-2 rounded-full transition-all duration-300" 
-                          style={{ width: `${(getCompletedSections() / researchSteps.length) * 100}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {error && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <div className="flex items-center gap-2 text-red-700">
-                      <AlertCircle className="w-5 h-5" />
-                      <span className="font-medium">خطأ في إنشاء المقال</span>
-                    </div>
-                    <p className="text-red-600 text-sm mt-1">{error}</p>
-                  </div>
-                )}
-
-                {/* Current generation status - محسن */}
-                {(isGenerating || isAutoGenerating || isCompletingAll) && (
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 shadow-sm">
-                    <div className="flex items-center gap-2 text-blue-700 mb-2">
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      <span className="font-medium">جاري الكتابة...</span>
-                    </div>
-                    <div className="text-sm text-blue-600 space-y-1">
-                      <p><strong>المرحلة الحالية:</strong> {researchSections[currentStep]?.title}</p>
-                      <p><strong>الوضع:</strong> {isCompletingAll ? 'إكمال جميع المراحل تلقائياً' : 'كتابة مرحلية'}</p>
-                      <p><strong>التقدم:</strong> {currentStep + 1} من {researchSections.length}</p>
-                      <div className="w-full bg-blue-200 rounded-full h-2 mt-2">
-                        <div 
-                          className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
-                          style={{ width: `${((currentStep + 1) / researchSections.length) * 100}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* أزرار التحكم الرئيسية */}
-                <div className="space-y-3">
-                  {!isAutoGenerating && !isCompletingAll ? (
-                    <>
-                      <Button 
-                        onClick={handleCompleteAllStages}
-                        disabled={isGenerating}
-                        className="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-medium py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
-                      >
-                        <Sparkles className="w-5 h-5 mr-2" />
-                        إكمال جميع المراحل المتبقية
-                      </Button>
-                      
-                      <Button 
-                        onClick={handleAutoGenerate}
-                        disabled={isGenerating}
-                        className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
-                      >
-                        <PlayCircle className="w-5 h-5 mr-2" />
-                        بدء من المرحلة الأولى (تلقائي)
-                      </Button>
-                    </>
-                  ) : (
-                    <Button 
-                      onClick={stopAllGeneration}
-                      className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-medium py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
-                    >
-                      <Pause className="w-5 h-5 mr-2" />
-                      إيقاف التوليد
-                    </Button>
-                  )}
-
-                  <Button 
-                    onClick={() => setIsStepByStep(!isStepByStep)}
-                    variant="outline"
-                    className="w-full"
-                  >
-                    {isStepByStep ? (
-                      <>
-                        <Pause className="w-5 h-5 mr-2" />
-                        إخفاء الكتابة المرحلية
-                      </>
-                    ) : (
-                      <>
-                        <PlayCircle className="w-5 h-5 mr-2" />
-                        كتابة مرحلية يدوية
-                      </>
-                    )}
-                  </Button>
+            {generatedContent && !isGenerating && (
+              <Button
+                type="button"
+                onClick={handleExportToWord}
+                className="bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-semibold py-3 px-8 rounded-xl shadow-lg transform transition-all duration-200 hover:scale-105"
+              >
+                <div className="flex items-center gap-2">
+                  <Download className="w-4 h-4" />
+                  <span>تحميل ملف Word</span>
                 </div>
-
-                {/* تحرير عناوين المراحل */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-semibold text-gray-900">عناوين المراحل:</h4>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => setEditingTitles(!editingTitles)}
-                        variant="outline"
-                        size="sm"
-                      >
-                        {editingTitles ? (
-                          <>
-                            <Save className="w-4 h-4 mr-1" />
-                            حفظ
-                          </>
-                        ) : (
-                          <>
-                            <Edit className="w-4 h-4 mr-1" />
-                            تعديل
-                          </>
-                        )}
-                      </Button>
-                      {editingTitles && (
-                        <Button
-                          onClick={resetTitlesToDefault}
-                          variant="outline"
-                          size="sm"
-                        >
-                          <RotateCcw className="w-4 h-4 mr-1" />
-                          إعادة تعيين
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-
-                  {editingTitles ? (
-                    <div className="space-y-2">
-                      {researchSections.map((section, index) => (
-                        <Input
-                          key={index}
-                          value={section.title}
-                          onChange={(e) => handleTitleChange(index, e.target.value)}
-                          placeholder={`عنوان المرحلة ${index + 1}`}
-                          className="text-sm"
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-sm text-gray-600 space-y-1">
-                      {researchSections.map((section, index) => (
-                        <div key={index} className="flex items-center gap-2">
-                          <span className="w-4 text-center text-gray-400">{index + 1}.</span>
-                          <span>{section.title}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {isStepByStep && (
-                  <div className="space-y-3">
-                    <h4 className="font-semibold text-gray-900">التحكم المرحلي:</h4>
-                    {researchSteps.map((step, index) => (
-                      <Button
-                        key={index}
-                        onClick={() => handleGenerateSection(index)}
-                        disabled={isGenerating || isAutoGenerating || isCompletingAll}
-                        variant={researchSections[index].completed ? "default" : "outline"}
-                        className="w-full justify-between text-sm p-3"
-                        size="sm"
-                      >
-                        <div className="flex items-center">
-                          {isGenerating && currentStep === index ? (
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          ) : researchSections[index].completed ? (
-                            <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
-                          ) : (
-                            <Clock className="w-4 h-4 mr-2 text-gray-400" />
-                          )}
-                          {researchSections[index].title}
-                        </div>
-                        {researchSections[index].completed && (
-                          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                            {researchSections[index].wordCount} كلمة
-                          </span>
-                        )}
-                      </Button>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Generated Article */}
-            <div className="lg:col-span-2">
-              <Card className="shadow-lg border-0">
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span className="flex items-center gap-2 text-gray-900">
-                      <FileText className="w-6 h-6" />
-                      البحث العلمي
-                    </span>
-                    {generatedArticle && (
-                      <Button
-                        onClick={handleExportToWord}
-                        disabled={isExporting}
-                        size="sm"
-                        className="bg-green-600 hover:bg-green-700 text-white"
-                      >
-                        {isExporting ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            تصدير...
-                          </>
-                        ) : (
-                          <>
-                            <Download className="w-4 h-4 mr-2" />
-                            تصدير إلى Word
-                          </>
-                        )}
-                      </Button>
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {isGenerating ? (
-                    <div className="text-center py-12">
-                      <Loader2 className="w-12 h-12 mx-auto mb-4 text-blue-600 animate-spin" />
-                      <p className="text-lg text-gray-600">
-                        جاري إنشاء: {researchSections[currentStep]?.title}...
-                      </p>
-                      <p className="text-sm text-gray-500 mt-2">
-                        {isCompletingAll ? 'إكمال جميع المراحل - ' : isAutoGenerating ? 'الكتابة التلقائية - ' : ''}
-                        قد يستغرق هذا بضع دقائق لإنشاء بحث متكامل
-                      </p>
-                    </div>
-                  ) : generatedArticle ? (
-                    <ResearchViewer 
-                      content={generatedArticle} 
-                      title={topic}
-                      researchSettings={researchSettings}
-                    />
-                  ) : (
-                    <div className="text-center py-12 text-gray-500">
-                      <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                      <p className="text-lg">سيظهر البحث العلمي هنا بعد الإنشاء</p>
-                      <p className="text-sm text-gray-400 mt-2">
-                        أدخل موضوعك وخصص عناوين المراحل حسب تخصص بحثك
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+              </Button>
+            )}
           </div>
-        </div>
+        </form>
+
+        {generatedContent && (
+          <div className="mt-8 p-6 rounded-xl shadow-md bg-white text-gray-700 text-right prose-arabic">
+            <h3 className="text-xl font-semibold mb-4">المحتوى الذي تم توليده:</h3>
+            <Textarea
+              value={generatedContent}
+              readOnly
+              className="w-full h-96 px-4 py-3 rounded-xl border-gray-300 focus:ring-blue-500 focus:border-blue-500 shadow-sm text-right resize-none"
+            />
+          </div>
+        )}
       </div>
     </section>
   );
