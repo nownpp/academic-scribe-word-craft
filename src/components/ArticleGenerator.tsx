@@ -340,11 +340,6 @@ export const ArticleGenerator = () => {
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
             ✍️ منصة كتابة الأبحاث العلمية الاحترافية
           </h2>
-          <p className="text-xl text-gray-600 max-w-4xl mx-auto leading-relaxed">
-            اكتب بحثًا علميًا احترافيًا متكاملاً حول الموضوع المطلوب
-            <br />
-            مع تنسيق أكاديمي متقدم وبنية علمية متكاملة لا تقل عن 11 ورقة بحثية
-          </p>
         </div>
 
         <div className="max-w-7xl mx-auto">
@@ -426,7 +421,7 @@ export const ArticleGenerator = () => {
                               ...prev,
                               grade: e.target.value
                             }))}
-                            placeholder="مثال: الفرقة الثالثة"
+                            placeholder="مثال: الffرقة الثالثة"
                           />
                         </div>
                         <div className="space-y-2">

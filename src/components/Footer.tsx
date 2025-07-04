@@ -18,9 +18,9 @@ export const Footer = () => {
           </p>
           
           <div className="flex items-center justify-center gap-2 text-gray-400 mb-6">
-            <span>تم التطوير بواسطة</span>
+            <span>تم التصميم بواسطة</span>
             <Heart className="w-4 h-4 text-red-500" />
-            <span className="font-semibold text-blue-400">يوسف</span>
+            <span className="font-semibold text-blue-400">Yousef</span>
             <Code className="w-4 h-4 text-blue-400" />
           </div>
           
