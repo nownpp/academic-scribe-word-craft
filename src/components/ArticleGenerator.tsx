@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Loader2, FileText, Download, Sparkles, AlertCircle, Settings, PlayCircle, Pause, Clock, CheckCircle, Edit, Save, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateArticleSection } from '@/services/geminiService';
-import { exportToWord } from '@/services/wordExportService';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ResearchViewer } from '@/components/ResearchViewer';
 import { generateWordDocument } from '@/lib/wordGenerator';
