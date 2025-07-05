@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -71,7 +70,7 @@ export const ArticleGenerator = () => {
                 })
               ],
               heading: HeadingLevel.HEADING_2,
-              alignment: AlignmentType.RIGHT,
+              alignment: AlignmentType.START,
               spacing: { before: 300, after: 200 }
             })
           );
@@ -86,7 +85,7 @@ export const ArticleGenerator = () => {
                   font: 'Arial'
                 })
               ],
-              alignment: AlignmentType.JUSTIFY,
+              alignment: AlignmentType.BOTH,
               spacing: { after: 200 },
               indent: { firstLine: 720 } // مسافة بداية الفقرة
             })
