@@ -11,6 +11,7 @@ import { generateArticleSection } from '@/services/geminiService';
 import { exportToWord } from '@/services/wordExportService';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ResearchViewer } from '@/components/ResearchViewer';
+import { generateWordDocument } from '@/lib/wordGenerator';
 
 interface ResearchSection {
   title: string;
@@ -315,7 +316,7 @@ export const ArticleGenerator = () => {
 
     setIsExporting(true);
     try {
-      await exportToWord(generatedArticle, topic, researchSettings);
+      await generateWordDocument(generatedArticle, topic, researchSettings);
       toast.success('تم تصدير المقال إلى Word بنجاح!');
     } catch (error) {
       console.error('خطأ في تصدير المقال:', error);
