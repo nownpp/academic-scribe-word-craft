@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -5,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { PenTool, Download } from 'lucide-react';
 import { generateArticle } from '@/lib/article-generator';
 import { saveAs } from 'file-saver';
-import { Document, Packer, Paragraph, TextRun } from 'docx';
+import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } from 'docx';
 
 export const ArticleGenerator = () => {
   const [topic, setTopic] = useState('');
@@ -20,7 +21,7 @@ export const ArticleGenerator = () => {
       setGeneratedContent(content);
     } catch (error) {
       console.error('Error generating article:', error);
-      setGeneratedContent('Error generating article. Please try again.');
+      setGeneratedContent('خطأ في توليد المقال. يرجى المحاولة مرة أخرى.');
     } finally {
       setIsGenerating(false);
     }
@@ -28,26 +29,89 @@ export const ArticleGenerator = () => {
 
   const handleExportToWord = async () => {
     if (!generatedContent) {
-      alert('No content to export!');
+      alert('لا يوجد محتوى للتصدير!');
       return;
     }
 
-    const doc = new Document({
-      sections: [{
-        children: [
-          new Paragraph({
-            children: [new TextRun(generatedContent)],
-          }),
-        ],
-      }],
-    });
-
     try {
+      // Parse the content and create proper Word document structure
+      const lines = generatedContent.split('\n').filter(line => line.trim());
+      const children: Paragraph[] = [];
+
+      lines.forEach(line => {
+        const trimmedLine = line.trim();
+        
+        if (trimmedLine.startsWith('# ')) {
+          // Main heading
+          children.push(new Paragraph({
+            children: [new TextRun({
+              text: trimmedLine.substring(2),
+              bold: true,
+              size: 32,
+            })],
+            heading: HeadingLevel.HEADING_1,
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 200 },
+          }));
+        } else if (trimmedLine.startsWith('## ')) {
+          // Sub-heading
+          children.push(new Paragraph({
+            children: [new TextRun({
+              text: trimmedLine.substring(3),
+              bold: true,
+              size: 28,
+            })],
+            heading: HeadingLevel.HEADING_2,
+            alignment: AlignmentType.START,
+            spacing: { before: 200, after: 120 },
+          }));
+        } else if (trimmedLine.match(/^\d+\./)) {
+          // Numbered list item
+          children.push(new Paragraph({
+            children: [new TextRun({
+              text: trimmedLine,
+              size: 24,
+            })],
+            alignment: AlignmentType.START,
+            spacing: { after: 80 },
+            indent: { left: 720 },
+          }));
+        } else if (trimmedLine.length > 0) {
+          // Regular paragraph
+          children.push(new Paragraph({
+            children: [new TextRun({
+              text: trimmedLine,
+              size: 24,
+            })],
+            alignment: AlignmentType.BOTH,
+            spacing: { after: 120 },
+            indent: { firstLine: 720 },
+          }));
+        }
+      });
+
+      const doc = new Document({
+        sections: [{
+          properties: {
+            page: {
+              margin: {
+                top: 1440,
+                right: 1440,
+                bottom: 1440,
+                left: 1440,
+              },
+            },
+          },
+          children: children,
+        }],
+      });
+
       const blob = await Packer.toBlob(doc);
-      saveAs(blob, 'generated-article.docx');
+      const fileName = topic ? `مقال-${topic}.docx` : 'مقال-علمي.docx';
+      saveAs(blob, fileName);
     } catch (error) {
       console.error('Error exporting to Word:', error);
-      alert('Failed to export to Word. Please try again.');
+      alert('فشل في تصدير الملف إلى Word. يرجى المحاولة مرة أخرى.');
     }
   };
 
