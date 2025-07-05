@@ -93,7 +93,7 @@ export const generateWordDocument = async (
         children: [
           new TextRun({
             text: 'بحث علمي متقدم',
-            italic: true,
+            italics: true,
             size: 24,
             color: '4a5568',
           }),
@@ -306,9 +306,9 @@ const isSectionTitle = (text: string): boolean => {
 };
 
 const isSubSectionTitle = (text: string): boolean => {
-  return text.includes('المحور') || (text.match(/^\d+\./) && text.length < 200);
+  return text.includes('المحور') || (!!text.match(/^\d+\./) && text.length < 200);
 };
 
 const isReference = (text: string): boolean => {
-  return text.match(/^\d+\s*[\.\-]/);
+  return !!text.match(/^\d+\s*[\.\-]/);
 };
