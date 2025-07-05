@@ -21,27 +21,35 @@ export const generateWordDocument = async (
     console.log('Starting Word document generation...');
     console.log('Content length:', content?.length || 0);
     console.log('Title:', title);
+    console.log('Research settings:', researchSettings);
 
-    if (!content || content.trim() === '') {
-      console.error('No content provided for export');
-      throw new Error('لا يوجد محتوى للتصدير');
+    // التحقق من وجود المحتوى
+    if (!content || typeof content !== 'string' || content.trim() === '') {
+      console.error('No valid content provided for export');
+      throw new Error('لا يوجد محتوى صالح للتصدير');
+    }
+
+    // التحقق من وجود العنوان
+    if (!title || typeof title !== 'string' || title.trim() === '') {
+      console.error('No valid title provided');
+      throw new Error('لا يوجد عنوان صالح للتصدير');
     }
 
     const children: Paragraph[] = [];
 
     // إضافة صفحة الغلاف إذا كانت المعلومات متوفرة
-    if (researchSettings && (researchSettings.universityName || researchSettings.authorName)) {
+    if (researchSettings && Object.values(researchSettings).some(value => value && value.trim())) {
       console.log('Adding cover page...');
       
       // عنوان الجامعة
-      if (researchSettings.universityName) {
+      if (researchSettings.universityName && researchSettings.universityName.trim()) {
         children.push(
           new Paragraph({
             children: [
               new TextRun({
-                text: researchSettings.universityName,
+                text: researchSettings.universityName.trim(),
                 bold: true,
-                size: 48,
+                size: 32,
                 color: '1a365d',
               }),
             ],
@@ -51,14 +59,14 @@ export const generateWordDocument = async (
         );
       }
 
-      // اسم الكلية والقسم
-      if (researchSettings.facultyName) {
+      // اسم الكلية
+      if (researchSettings.facultyName && researchSettings.facultyName.trim()) {
         children.push(
           new Paragraph({
             children: [
               new TextRun({
-                text: researchSettings.facultyName,
-                size: 32,
+                text: researchSettings.facultyName.trim(),
+                size: 24,
                 color: '2d3748',
               }),
             ],
@@ -68,93 +76,15 @@ export const generateWordDocument = async (
         );
       }
 
-      if (researchSettings.departmentName) {
+      // اسم القسم
+      if (researchSettings.departmentName && researchSettings.departmentName.trim()) {
         children.push(
           new Paragraph({
             children: [
               new TextRun({
-                text: researchSettings.departmentName,  
-                size: 28,
+                text: researchSettings.departmentName.trim(),
+                size: 20,
                 color: '4a5568',
-              }),
-            ],
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 600 },
-          })
-        );
-      }
-
-      // عنوان البحث
-      if (title && title.trim()) {
-        children.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: title.trim(),
-                bold: true,
-                size: 36,
-                color: '1a365d',
-              }),
-            ],
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 200 },
-          })
-        );
-      }
-
-      children.push(
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: 'بحث علمي متقدم',
-              italics: true,
-              size: 24,
-              color: '4a5568',
-            }),
-          ],
-          alignment: AlignmentType.CENTER,
-          spacing: { after: 600 },
-        })
-      );
-
-      // معلومات الباحث
-      if (researchSettings.authorName) {
-        children.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: `إعداد الطالب: ${researchSettings.authorName}`,
-                size: 24,
-              }),
-            ],
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 200 },
-          })
-        );
-      }
-
-      if (researchSettings.grade) {
-        children.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: `الفرقة: ${researchSettings.grade}`,
-                size: 24,
-              }),
-            ],
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 200 },
-          })
-        );
-      }
-
-      if (researchSettings.supervisor) {
-        children.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: `إشراف: ${researchSettings.supervisor}`,
-                size: 24,
               }),
             ],
             alignment: AlignmentType.CENTER,
@@ -163,18 +93,96 @@ export const generateWordDocument = async (
         );
       }
 
-      // العام الأكاديمي
+      // عنوان البحث
       children.push(
         new Paragraph({
           children: [
             new TextRun({
-              text: `العام الأكاديمي ${new Date().getFullYear()}/${new Date().getFullYear() + 1}`,
-              size: 20,
+              text: title.trim(),
+              bold: true,
+              size: 28,
+              color: '1a365d',
+            }),
+          ],
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 200 },
+        })
+      );
+
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: 'بحث علمي متقدم',
+              italics: true,
+              size: 18,
+              color: '4a5568',
+            }),
+          ],
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 400 },
+        })
+      );
+
+      // معلومات الباحث
+      if (researchSettings.authorName && researchSettings.authorName.trim()) {
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `إعداد الطالب: ${researchSettings.authorName.trim()}`,
+                size: 18,
+              }),
+            ],
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 200 },
+          })
+        );
+      }
+
+      if (researchSettings.grade && researchSettings.grade.trim()) {
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `الفرقة: ${researchSettings.grade.trim()}`,
+                size: 18,
+              }),
+            ],
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 200 },
+          })
+        );
+      }
+
+      if (researchSettings.supervisor && researchSettings.supervisor.trim()) {
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `إشراف: ${researchSettings.supervisor.trim()}`,
+                size: 18,
+              }),
+            ],
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 300 },
+          })
+        );
+      }
+
+      // العام الأكاديمي
+      const currentYear = new Date().getFullYear();
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: `العام الأكاديمي ${currentYear}/${currentYear + 1}`,
+              size: 16,
               color: '666666',
             }),
           ],
           alignment: AlignmentType.CENTER,
-          spacing: { after: 800 },
+          spacing: { after: 600 },
         })
       );
 
@@ -189,9 +197,14 @@ export const generateWordDocument = async (
 
     // معالجة محتوى البحث
     console.log('Processing research content...');
-    const lines = content.split('\n').filter(line => line && line.trim().length > 0);
+    const cleanContent = content.trim().replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    const lines = cleanContent.split('\n').filter(line => line && line.trim().length > 0);
     console.log('Number of lines to process:', lines.length);
     
+    if (lines.length === 0) {
+      throw new Error('لا يوجد محتوى صالح للمعالجة');
+    }
+
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       const trimmedLine = line.trim();
@@ -208,13 +221,13 @@ export const generateWordDocument = async (
                 new TextRun({
                   text: trimmedLine,
                   bold: true,
-                  size: 32,
+                  size: 24,
                   color: '1e40af',
                 }),
               ],
               alignment: AlignmentType.CENTER,
               heading: HeadingLevel.HEADING_1,
-              spacing: { before: 400, after: 400 },
+              spacing: { before: 300, after: 300 },
             })
           );
         } else if (isSectionTitle(trimmedLine)) {
@@ -225,13 +238,13 @@ export const generateWordDocument = async (
                 new TextRun({
                   text: trimmedLine,
                   bold: true,
-                  size: 26,
+                  size: 20,
                   color: 'dc2626',
                 }),
               ],
               alignment: AlignmentType.START,
               heading: HeadingLevel.HEADING_2,
-              spacing: { before: 300, after: 200 },
+              spacing: { before: 240, after: 120 },
             })
           );
         } else if (isSubSectionTitle(trimmedLine)) {
@@ -242,13 +255,13 @@ export const generateWordDocument = async (
                 new TextRun({
                   text: trimmedLine,
                   bold: true,
-                  size: 22,
+                  size: 18,
                   color: '7c3aed',
                 }),
               ],
               alignment: AlignmentType.START,
               heading: HeadingLevel.HEADING_3,
-              spacing: { before: 200, after: 150 },
+              spacing: { before: 180, after: 120 },
             })
           );
         } else if (isReference(trimmedLine)) {
@@ -258,12 +271,12 @@ export const generateWordDocument = async (
               children: [
                 new TextRun({
                   text: trimmedLine,
-                  size: 20,
+                  size: 16,
                   color: '374151',
                 }),
               ],
               alignment: AlignmentType.START,
-              spacing: { before: 100, after: 100 },
+              spacing: { before: 80, after: 80 },
               indent: { left: 400 },
             })
           );
@@ -274,13 +287,13 @@ export const generateWordDocument = async (
               children: [
                 new TextRun({
                   text: trimmedLine,
-                  size: 22,
+                  size: 16,
                   color: '1f2937',
                 }),
               ],
               alignment: AlignmentType.BOTH,
-              spacing: { before: 150, after: 150 },
-              indent: { firstLine: 800 },
+              spacing: { before: 120, after: 120 },
+              indent: { firstLine: 600 },
             })
           );
         }
@@ -292,86 +305,150 @@ export const generateWordDocument = async (
             children: [
               new TextRun({
                 text: trimmedLine,
-                size: 22,
+                size: 16,
                 color: '1f2937',
               }),
             ],
             alignment: AlignmentType.BOTH,
-            spacing: { before: 150, after: 150 },
+            spacing: { before: 120, after: 120 },
           })
         );
       }
     }
 
     if (children.length === 0) {
-      console.error('No content was processed');
-      throw new Error('لم يتم معالجة أي محتوى للتصدير');
+      console.error('No content was processed successfully');
+      throw new Error('فشل في معالجة المحتوى - لا توجد فقرات صالحة');
     }
 
     console.log('Creating Word document with', children.length, 'paragraphs...');
 
-    // إنشاء الوثيقة
+    // إنشاء الوثيقة مع إعدادات محسنة
     const doc = new Document({
       sections: [
         {
           properties: {
             page: {
               margin: {
-                top: 1440, // 1 inch
+                top: 1440,    // 1 inch = 1440 twips
                 right: 1440,
                 bottom: 1440,
                 left: 1440,
+              },
+              size: {
+                orientation: 'portrait',
               },
             },
           },
           children: children,
         },
       ],
+      styles: {
+        default: {
+          document: {
+            run: {
+              font: 'Arial',
+              size: 16,
+            },
+            paragraph: {
+              spacing: {
+                line: 276, // 1.15 line spacing
+                before: 0,
+                after: 0,
+              },
+            },
+          },
+        },
+      },
     });
 
     console.log('Converting document to buffer...');
-    // تصدير الملف
-    const buffer = await Packer.toBuffer(doc);
+    
+    // تصدير الملف مع معالجة أفضل للأخطاء
+    let buffer: ArrayBuffer;
+    try {
+      buffer = await Packer.toBuffer(doc);
+    } catch (packError) {
+      console.error('Error during document packing:', packError);
+      throw new Error('فشل في تحويل الوثيقة إلى تنسيق Word');
+    }
+
+    if (!buffer || buffer.byteLength === 0) {
+      throw new Error('تم إنشاء ملف فارغ - يرجى المحاولة مرة أخرى');
+    }
+
+    console.log('Buffer size:', buffer.byteLength, 'bytes');
+
+    // إنشاء البلوب مع التحقق من النوع
     const blob = new Blob([buffer], { 
       type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
     });
     
+    if (blob.size === 0) {
+      throw new Error('فشل في إنشاء الملف - حجم الملف صفر');
+    }
+    
+    console.log('Blob size:', blob.size, 'bytes');
+    
     // إنشاء اسم الملف بشكل آمن
     let fileName = 'البحث_العلمي.docx';
-    if (title && title.trim()) {
-      const cleanTitle = title.trim()
-        .substring(0, 50)
-        .replace(/[^\w\s\u0600-\u06FF-]/g, '') // Keep Arabic characters and basic Latin
-        .replace(/\s+/g, '_');
-      if (cleanTitle) {
-        fileName = `${cleanTitle}.docx`;
+    try {
+      if (title && title.trim()) {
+        const cleanTitle = title.trim()
+          .substring(0, 50)
+          .replace(/[<>:"/\\|?*]/g, '') // Remove invalid filename characters
+          .replace(/\s+/g, '_')
+          .replace(/[^\w\s\u0600-\u06FF_-]/g, ''); // Keep Arabic, Latin, underscore, hyphen
+        
+        if (cleanTitle && cleanTitle.length > 0) {
+          fileName = `${cleanTitle}.docx`;
+        }
       }
+    } catch (nameError) {
+      console.warn('Error creating filename, using default:', nameError);
     }
     
     console.log('Saving file as:', fileName);
-    saveAs(blob, fileName);
     
-    console.log('Word document generated successfully!');
+    // حفظ الملف مع معالجة الأخطاء
+    try {
+      saveAs(blob, fileName);
+    } catch (saveError) {
+      console.error('Error during file save:', saveError);
+      throw new Error('فشل في حفظ الملف - يرجى التحقق من إعدادات المتصفح');
+    }
+    
+    console.log('Word document generated and saved successfully!');
     return true;
+
   } catch (error) {
     console.error('خطأ في تصدير الملف:', error);
     
     // معلومات إضافية للتشخيص
     if (error instanceof Error) {
+      console.error('Error name:', error.name);
       console.error('Error message:', error.message);
       console.error('Error stack:', error.stack);
     }
     
-    const errorMessage = error instanceof Error ? error.message : 'خطأ غير محدد في التصدير';
-    throw new Error(`فشل في تصدير الملف: ${errorMessage}`);
+    // رفع خطأ واضح للمستخدم
+    let errorMessage = 'خطأ غير محدد في التصدير';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+    
+    throw new Error(`فشل في تصدير ملف Word: ${errorMessage}`);
   }
 };
 
-// دوال مساعدة لتحديد نوع النص - مع معالجة أفضل للأخطاء
+// دوال مساعدة لتحديد نوع النص - محسنة مع معالجة أفضل للأخطاء
 const isMainTitle = (text: string, title?: string): boolean => {
   try {
     if (!text || !title) return false;
-    return text === title || (text.length < 100 && title && text.includes(title.substring(0, Math.min(20, title.length))));
+    const normalizedText = text.trim().toLowerCase();
+    const normalizedTitle = title.trim().toLowerCase();
+    return normalizedText === normalizedTitle || 
+           (normalizedText.length < 100 && normalizedTitle.includes(normalizedText.substring(0, Math.min(20, normalizedText.length))));
   } catch {
     return false;
   }
@@ -379,8 +456,8 @@ const isMainTitle = (text: string, title?: string): boolean => {
 
 const isSectionTitle = (text: string): boolean => {
   try {
-    if (!text) return false;
-    const sectionKeywords = ['المقدمة', 'الخاتمة', 'المراجع', 'التعريف والمفاهيم'];
+    if (!text || typeof text !== 'string') return false;
+    const sectionKeywords = ['المقدمة', 'الخاتمة', 'المراجع', 'التعريف والمفاهيم', 'النتائج', 'التوصيات'];
     return sectionKeywords.some(keyword => text.includes(keyword));
   } catch {
     return false;
@@ -389,9 +466,12 @@ const isSectionTitle = (text: string): boolean => {
 
 const isSubSectionTitle = (text: string): boolean => {
   try {
-    if (!text) return false;
+    if (!text || typeof text !== 'string') return false;
     const numberPattern = /^\d+\./;
-    return text.includes('المحور') || (numberPattern.test(text) && text.length < 200);
+    return text.includes('المحور') || 
+           text.includes('الفصل') || 
+           text.includes('القسم') ||
+           (numberPattern.test(text) && text.length < 200);
   } catch {
     return false;
   }
@@ -399,9 +479,9 @@ const isSubSectionTitle = (text: string): boolean => {
 
 const isReference = (text: string): boolean => {
   try {
-    if (!text) return false;
-    const referencePattern = /^\d+\s*[\.\-]/;
-    return referencePattern.test(text);
+    if (!text || typeof text !== 'string') return false;
+    const referencePattern = /^\d+[\.\-\s]/;
+    return referencePattern.test(text.trim());
   } catch {
     return false;
   }
