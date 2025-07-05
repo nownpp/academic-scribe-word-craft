@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { PenTool, Download } from 'lucide-react';
 import { generateArticle } from '@/lib/article-generator';
 import { saveAs } from 'file-saver';
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
+import { Document, Packer, Paragraph, TextRun } from 'docx';
 
 export const ArticleGenerator = () => {
   const [topic, setTopic] = useState('');
@@ -28,94 +28,26 @@ export const ArticleGenerator = () => {
 
   const handleExportToWord = async () => {
     if (!generatedContent) {
-      alert('لا يوجد محتوى للتصدير!');
+      alert('No content to export!');
       return;
     }
 
+    const doc = new Document({
+      sections: [{
+        children: [
+          new Paragraph({
+            children: [new TextRun(generatedContent)],
+          }),
+        ],
+      }],
+    });
+
     try {
-      // تقسيم المحتوى إلى أسطر ومعالجة كل سطر
-      const lines = generatedContent.split('\n').filter(line => line.trim() !== '');
-      const paragraphs: Paragraph[] = [];
-
-      lines.forEach(line => {
-        const trimmedLine = line.trim();
-        
-        if (trimmedLine.startsWith('# ')) {
-          // العنوان الرئيسي
-          paragraphs.push(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: trimmedLine.substring(2),
-                  bold: true,
-                  size: 32,
-                  font: 'Arial'
-                })
-              ],
-              heading: HeadingLevel.HEADING_1,
-              alignment: AlignmentType.CENTER,
-              spacing: { after: 400 }
-            })
-          );
-        } else if (trimmedLine.startsWith('## ')) {
-          // العناوين الفرعية
-          paragraphs.push(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: trimmedLine.substring(3),
-                  bold: true,
-                  size: 24,
-                  font: 'Arial'
-                })
-              ],
-              heading: HeadingLevel.HEADING_2,
-              alignment: AlignmentType.START,
-              spacing: { before: 300, after: 200 }
-            })
-          );
-        } else if (trimmedLine !== '') {
-          // الفقرات العادية
-          paragraphs.push(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: trimmedLine,
-                  size: 22,
-                  font: 'Arial'
-                })
-              ],
-              alignment: AlignmentType.BOTH,
-              spacing: { after: 200 },
-              indent: { firstLine: 720 } // مسافة بداية الفقرة
-            })
-          );
-        }
-      });
-
-      const doc = new Document({
-        sections: [{
-          properties: {
-            page: {
-              margin: {
-                top: 1440,
-                right: 1440,
-                bottom: 1440,
-                left: 1440,
-              },
-            },
-          },
-          children: paragraphs,
-        }],
-      });
-
       const blob = await Packer.toBlob(doc);
-      const filename = `${topic.replace(/[^\w\s]/gi, '')}_مقال_علمي.docx`;
-      saveAs(blob, filename);
-      
+      saveAs(blob, 'generated-article.docx');
     } catch (error) {
       console.error('Error exporting to Word:', error);
-      alert('فشل في تصدير الملف إلى Word. يرجى المحاولة مرة أخرى.');
+      alert('Failed to export to Word. Please try again.');
     }
   };
 
