@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ZoomIn, ZoomOut, FileText, Type, AlignLeft, AlignCenter, AlignJustify, Edit3, Sparkles } from 'lucide-react';
+import { ZoomIn, ZoomOut, FileText, Type, AlignLeft, AlignCenter, AlignJustify, Edit3, Sparkles, Copy, CheckCircle } from 'lucide-react';
 import { generateArticleSection } from '@/services/geminiService';
 import { toast } from 'sonner';
 
@@ -29,6 +29,8 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
   const [lineHeight, setLineHeight] = useState(1.8);
   const [editableContent, setEditableContent] = useState(content);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isCopying, setIsCopying] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
 
   const increaseFontSize = () => setFontSize(prev => Math.min(prev + 2, 24));
   const decreaseFontSize = () => setFontSize(prev => Math.max(prev - 2, 10));
@@ -81,6 +83,92 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
       .replace(/تم توليد هذا المحتوى بواسطة.*?\n?/gi, '')
       .replace(/أنت خبير أكاديمي.*?\n?/gi, '')
       .replace(/اكتب.*?علميًا.*?\n?/gi, '');
+  };
+
+  // دالة نسخ المقال بالكامل
+  const copyArticleContent = async () => {
+    if (!editableContent.trim()) {
+      toast.error('لا يوجد محتوى للنسخ');
+      return;
+    }
+
+    setIsCopying(true);
+    try {
+      // تنظيف المحتوى وتنسيقه للنسخ
+      let cleanedContent = cleanDisplayContent(editableContent);
+      
+      // إضافة معلومات البحث إذا كانت متوفرة
+      let fullContent = '';
+      
+      if (researchSettings && (researchSettings.universityName || researchSettings.authorName)) {
+        fullContent += `${title}\n`;
+        fullContent += '================================\n\n';
+        
+        if (researchSettings.universityName) {
+          fullContent += `الجامعة: ${researchSettings.universityName}\n`;
+        }
+        if (researchSettings.facultyName) {
+          fullContent += `الكلية: ${researchSettings.facultyName}\n`;
+        }
+        if (researchSettings.departmentName) {
+          fullContent += `القسم: ${researchSettings.departmentName}\n`;
+        }
+        if (researchSettings.authorName) {
+          fullContent += `إعداد: ${researchSettings.authorName}\n`;
+        }
+        if (researchSettings.grade) {
+          fullContent += `الفرقة: ${researchSettings.grade}\n`;
+        }
+        if (researchSettings.supervisor) {
+          fullContent += `إشراف: ${researchSettings.supervisor}\n`;
+        }
+        
+        fullContent += `\nالعام الأكاديمي: ${new Date().getFullYear()}/${new Date().getFullYear() + 1}\n`;
+        fullContent += '\n================================\n\n';
+      } else {
+        fullContent += `${title}\n\n`;
+      }
+      
+      // إضافة المحتوى الأساسي
+      fullContent += cleanedContent;
+      
+      // نسخ المحتوى إلى الحافظة
+      await navigator.clipboard.writeText(fullContent);
+      
+      setIsCopied(true);
+      toast.success('تم نسخ المقال بالكامل بنجاح! 📋');
+      
+      // إعادة تعيين أيقونة النسخ بعد 3 ثواني
+      setTimeout(() => {
+        setIsCopied(false);
+      }, 3000);
+      
+    } catch (error) {
+      console.error('خطأ في نسخ المحتوى:', error);
+      
+      // طريقة بديلة للنسخ في حالة فشل navigator.clipboard
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = cleanDisplayContent(editableContent);
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        setIsCopied(true);
+        toast.success('تم نسخ المقال بنجاح! 📋');
+        setTimeout(() => setIsCopied(false), 3000);
+        
+      } catch (fallbackError) {
+        toast.error('فشل في نسخ المحتوى. يرجى المحاولة مرة أخرى.');
+      }
+    } finally {
+      setIsCopying(false);
+    }
   };
 
   const formatContentIntoPages = (text: string) => {
@@ -174,7 +262,6 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
     }
   };
 
-  // دالة لتحديد نوع العنصر وإعطاؤه التنسيق المناسب
   const getElementStyle = (text: string, index: number) => {
     const trimmed = text.trim();
     
@@ -354,6 +441,35 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
                 <option value={2.2}>2.2</option>
               </select>
             </div>
+
+            {/* زر نسخ المقال */}
+            <Button
+              onClick={copyArticleContent}
+              disabled={isCopying || !editableContent.trim()}
+              className={`${
+                isCopied 
+                  ? 'bg-green-600 hover:bg-green-700 text-white' 
+                  : 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white'
+              } font-medium px-4 py-2 rounded-lg shadow-md transition-all duration-300`}
+              size="sm"
+            >
+              {isCopying ? (
+                <>
+                  <Copy className="w-4 h-4 mr-2 animate-spin" />
+                  جاري النسخ...
+                </>
+              ) : isCopied ? (
+                <>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  تم النسخ!
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4 mr-2" />
+                  نسخ المقال كاملاً
+                </>
+              )}
+            </Button>
 
             <div className="flex items-center gap-2 text-sm text-blue-700 bg-gradient-to-r from-blue-100 to-indigo-100 px-4 py-2 rounded-lg shadow-sm">
               <Edit3 className="w-4 h-4" />
