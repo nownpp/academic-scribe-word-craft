@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ZoomIn, ZoomOut, FileText, Type, AlignLeft, AlignCenter, AlignJustify, Edit3, Sparkles, Copy, CheckCircle } from 'lucide-react';
+import { ZoomIn, ZoomOut, FileText, Type, AlignLeft, AlignCenter, AlignJustify, Edit3, Sparkles, Copy, CheckCircle, FileDown } from 'lucide-react';
 import { generateArticleSection } from '@/services/geminiService';
+import { generatePDFDocument } from '@/services/pdfExportService';
 import { toast } from 'sonner';
 
 interface ResearchViewerProps {
@@ -31,6 +32,7 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
 
   const increaseFontSize = () => setFontSize(prev => Math.min(prev + 2, 24));
   const decreaseFontSize = () => setFontSize(prev => Math.max(prev - 2, 10));
@@ -168,6 +170,24 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
       }
     } finally {
       setIsCopying(false);
+    }
+  };
+
+  const exportToPDF = async () => {
+    if (!editableContent.trim()) {
+      toast.error('لا يوجد محتوى لتصديره إلى PDF');
+      return;
+    }
+
+    setIsExportingPDF(true);
+    try {
+      await generatePDFDocument(editableContent, title, researchSettings);
+      toast.success('تم تصدير المقال إلى PDF بنجاح! 📄');
+    } catch (error) {
+      console.error('خطأ في تصدير PDF:', error);
+      toast.error('فشل في تصدير الملف إلى PDF. يرجى المحاولة مرة أخرى.');
+    } finally {
+      setIsExportingPDF(false);
     }
   };
 
@@ -467,6 +487,26 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
                 <>
                   <Copy className="w-4 h-4 mr-2" />
                   نسخ المقال كاملاً
+                </>
+              )}
+            </Button>
+
+            {/* زر تصدير PDF الجديد */}
+            <Button
+              onClick={exportToPDF}
+              disabled={isExportingPDF || !editableContent.trim()}
+              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium px-4 py-2 rounded-lg shadow-md transition-all duration-300"
+              size="sm"
+            >
+              {isExportingPDF ? (
+                <>
+                  <FileDown className="w-4 h-4 mr-2 animate-spin" />
+                  جاري التصدير...
+                </>
+              ) : (
+                <>
+                  <FileText className="w-4 h-4 mr-2" />
+                  تصدير PDF
                 </>
               )}
             </Button>
