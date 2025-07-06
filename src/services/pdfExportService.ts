@@ -11,6 +11,11 @@ interface ResearchSettings {
   includeResearchPage: boolean;
 }
 
+interface TableOfContentsItem {
+  title: string;
+  pageNumber: number;
+}
+
 export const generatePDFDocument = async (
   content: string,
   title: string,
@@ -41,11 +46,14 @@ export const generatePDFDocument = async (
     const maxWidth = pageWidth - (margin * 2);
     
     let yPosition = margin;
+    let currentPageNumber = 1;
     const lineHeight = 8;
+    const tableOfContents: TableOfContentsItem[] = [];
 
     // دالة لإضافة صفحة جديدة
     const addNewPage = () => {
       doc.addPage();
+      currentPageNumber++;
       yPosition = margin;
     };
 
@@ -56,8 +64,14 @@ export const generatePDFDocument = async (
       }
     };
 
-    // دالة لإضافة نص مع دعم النص العربي
-    const addText = (text: string, fontSize: number = 12, isBold: boolean = false, alignment: 'right' | 'center' | 'left' = 'right') => {
+    // دالة لإضافة نص مع دعم أفضل للعربية
+    const addText = (
+      text: string, 
+      fontSize: number = 12, 
+      isBold: boolean = false, 
+      alignment: 'right' | 'center' | 'left' = 'right',
+      addToTOC: boolean = false
+    ) => {
       doc.setFontSize(fontSize);
       
       if (isBold) {
@@ -66,8 +80,17 @@ export const generatePDFDocument = async (
         doc.setFont('helvetica', 'normal');
       }
 
-      // تقسيم النص إلى أسطر متعددة
-      const lines = doc.splitTextToSize(text, maxWidth);
+      // إضافة إلى الفهرس إذا كان مطلوباً
+      if (addToTOC && text.trim()) {
+        tableOfContents.push({
+          title: text.trim(),
+          pageNumber: currentPageNumber
+        });
+      }
+
+      // معالجة النص العربي وتقسيمه
+      const processedText = processArabicText(text);
+      const lines = doc.splitTextToSize(processedText, maxWidth);
       
       for (let i = 0; i < lines.length; i++) {
         checkPageBreak();
@@ -84,7 +107,15 @@ export const generatePDFDocument = async (
       }
     };
 
-    // إضافة صفحة الغلاف إذا توفرت المعلومات
+    // دالة لمعالجة النص العربي
+    const processArabicText = (text: string): string => {
+      return text
+        .replace(/[\u202A-\u202E]/g, '') // إزالة رموز التحكم في الاتجاه
+        .replace(/\s+/g, ' ') // توحيد المسافات
+        .trim();
+    };
+
+    // إضافة صفحة الغلاف
     if (researchSettings && (researchSettings.universityName || researchSettings.authorName)) {
       // اسم الجامعة
       if (researchSettings.universityName) {
@@ -105,38 +136,102 @@ export const generatePDFDocument = async (
       }
 
       // عنوان البحث
-      yPosition += 20;
+      yPosition += 30;
       addText(title, 16, true, 'center');
-      yPosition += 20;
+      yPosition += 30;
 
       // معلومات الطالب
       if (researchSettings.authorName) {
         addText(`إعداد: ${researchSettings.authorName}`, 12, false, 'center');
-        yPosition += 5;
+        yPosition += 8;
       }
 
       if (researchSettings.grade) {
         addText(`الفرقة: ${researchSettings.grade}`, 12, false, 'center');
-        yPosition += 5;
+        yPosition += 8;
       }
 
       if (researchSettings.supervisor) {
         addText(`إشراف: ${researchSettings.supervisor}`, 12, false, 'center');
-        yPosition += 10;
+        yPosition += 15;
       }
 
       // العام الأكاديمي
       const currentYear = new Date().getFullYear();
       addText(`العام الأكاديمي ${currentYear}/${currentYear + 1}`, 11, false, 'center');
 
-      // صفحة جديدة للمحتوى
+      // صفحة جديدة للفهرس
       addNewPage();
     }
 
-    // معالجة المحتوى الرئيسي
+    // معالجة المحتوى أولاً لاستخراج العناوين
     const cleanContent = cleanDisplayContent(content);
     const contentLines = cleanContent.split('\n').filter(line => line.trim());
     
+    // تحليل المحتوى لإنشاء الفهرس
+    let tempPageNumber = currentPageNumber + 1; // +1 لأننا سنضيف صفحة الفهرس
+    const tempTOC: TableOfContentsItem[] = [];
+    let tempYPosition = margin;
+    
+    for (const line of contentLines) {
+      const trimmedLine = line.trim();
+      if (!trimmedLine) continue;
+
+      if (isSectionHeader(trimmedLine)) {
+        tempTOC.push({
+          title: trimmedLine,
+          pageNumber: tempPageNumber
+        });
+      }
+
+      // تقدير ارتفاع السطر
+      const estimatedLines = Math.ceil(trimmedLine.length / 80);
+      const estimatedHeight = estimatedLines * lineHeight + (isSectionHeader(trimmedLine) ? 15 : 5);
+      
+      if (tempYPosition + estimatedHeight > pageHeight - margin) {
+        tempPageNumber++;
+        tempYPosition = margin;
+      } else {
+        tempYPosition += estimatedHeight;
+      }
+    }
+
+    // إضافة صفحة الفهرس
+    addText('الفهرس', 16, true, 'center');
+    yPosition += 20;
+    
+    doc.setDrawColor(0, 0, 0);
+    doc.line(margin, yPosition, pageWidth - margin, yPosition);
+    yPosition += 10;
+
+    // إضافة عناصر الفهرس
+    for (const item of tempTOC) {
+      checkPageBreak(15);
+      
+      // العنوان
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.text(item.title, margin, yPosition, { align: 'right' });
+      
+      // رقم الصفحة
+      doc.text(item.pageNumber.toString(), pageWidth - margin, yPosition, { align: 'left' });
+      
+      // خط منقط
+      const dotStartX = margin + doc.getTextWidth(item.title) + 5;
+      const dotEndX = pageWidth - margin - doc.getTextWidth(item.pageNumber.toString()) - 5;
+      const dotY = yPosition - 2;
+      
+      for (let x = dotStartX; x < dotEndX; x += 3) {
+        doc.circle(x, dotY, 0.3, 'F');
+      }
+      
+      yPosition += 8;
+    }
+
+    // صفحة جديدة للمحتوى الرئيسي
+    addNewPage();
+
+    // إضافة المحتوى الرئيسي
     for (const line of contentLines) {
       const trimmedLine = line.trim();
       if (!trimmedLine) {
@@ -146,13 +241,33 @@ export const generatePDFDocument = async (
 
       // تحديد نوع السطر وتنسيقه
       if (isSectionHeader(trimmedLine)) {
-        yPosition += 5;
-        addText(trimmedLine, 14, true, 'right');
-        yPosition += 5;
+        yPosition += 8;
+        addText(trimmedLine, 14, true, 'right', true);
+        yPosition += 8;
       } else {
         addText(trimmedLine, 11, false, 'right');
-        yPosition += 3;
+        yPosition += 5;
       }
+    }
+
+    // إضافة أرقام الصفحات
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      
+      // تخطي ترقيم صفحة الغلاف
+      if (i === 1 && researchSettings && (researchSettings.universityName || researchSettings.authorName)) {
+        continue;
+      }
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(
+        i.toString(), 
+        pageWidth / 2, 
+        pageHeight - 10, 
+        { align: 'center' }
+      );
     }
 
     // إنشاء اسم الملف
@@ -199,10 +314,14 @@ const isSectionHeader = (text: string): boolean => {
     'الخاتمة',
     'المراجع',
     'النتائج',
-    'التوصيات'
+    'التوصيات',
+    'الفصل',
+    'المبحث'
   ];
   
-  return headers.some(header => text.includes(header));
+  return headers.some(header => text.includes(header)) || 
+         text.match(/^\d+[\.\-\)]\s*/) !== null ||
+         text.length < 100 && text.includes(':');
 };
 
 // دالة لإنشاء اسم ملف آمن
