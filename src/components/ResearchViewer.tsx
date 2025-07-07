@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ZoomIn, ZoomOut, FileText, Type, AlignLeft, AlignCenter, AlignJustify, Edit3, Sparkles, Copy, CheckCircle, FileDown } from 'lucide-react';
+import { ZoomIn, ZoomOut, FileText, Type, AlignLeft, AlignCenter, AlignJustify, Edit3, Sparkles, Copy, CheckCircle, FileDown, Download } from 'lucide-react';
 import { generateArticleSection } from '@/services/geminiService';
 import { generatePDFDocument } from '@/services/pdfExportService';
+import { generateWordDocument } from '@/services/wordExportService';
 import { toast } from 'sonner';
 
 interface ResearchViewerProps {
@@ -33,6 +34,7 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
   const [isCopying, setIsCopying] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
+  const [isExportingWord, setIsExportingWord] = useState(false);
 
   const increaseFontSize = () => setFontSize(prev => Math.min(prev + 2, 24));
   const decreaseFontSize = () => setFontSize(prev => Math.max(prev - 2, 10));
@@ -170,6 +172,25 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
       }
     } finally {
       setIsCopying(false);
+    }
+  };
+
+  // دالة تصدير الوورد الجديدة
+  const exportToWord = async () => {
+    if (!editableContent.trim()) {
+      toast.error('لا يوجد محتوى لتصديره إلى Word');
+      return;
+    }
+
+    setIsExportingWord(true);
+    try {
+      await generateWordDocument(editableContent, title, researchSettings);
+      toast.success('تم تصدير المقال إلى Word بنجاح! 📄');
+    } catch (error) {
+      console.error('خطأ في تصدير Word:', error);
+      toast.error('فشل في تصدير الملف إلى Word. يرجى المحاولة مرة أخرى.');
+    } finally {
+      setIsExportingWord(false);
     }
   };
 
@@ -491,7 +512,27 @@ export const ResearchViewer: React.FC<ResearchViewerProps> = ({
               )}
             </Button>
 
-            {/* زر تصدير PDF الجديد */}
+            {/* زر تصدير Word المُحدث */}
+            <Button
+              onClick={exportToWord}
+              disabled={isExportingWord || !editableContent.trim()}
+              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium px-4 py-2 rounded-lg shadow-md transition-all duration-300"
+              size="sm"
+            >
+              {isExportingWord ? (
+                <>
+                  <Download className="w-4 h-4 mr-2 animate-spin" />
+                  جاري التصدير...
+                </>
+              ) : (
+                <>
+                  <FileDown className="w-4 h-4 mr-2" />
+                  تصدير Word
+                </>
+              )}
+            </Button>
+
+            {/* زر تصدير PDF المُحدث */}
             <Button
               onClick={exportToPDF}
               disabled={isExportingPDF || !editableContent.trim()}
