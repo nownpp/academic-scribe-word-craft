@@ -26,7 +26,7 @@ export const Footer = () => {
           
           <div className="border-t border-gray-700 pt-6">
             <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-400">
-              <span>• مدعوم بتقنية Gemini AI من Google</span>
+              <span>•تحت رعاية U لتطوير نماذج الذكاء الاصطناعي </span>
               <span>• تصدير مباشر إلى ملفات Word</span>
               <span>• محتوى علمي عالي الجودة</span>
             </div>
