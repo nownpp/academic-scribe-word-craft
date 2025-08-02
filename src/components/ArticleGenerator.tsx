@@ -386,7 +386,7 @@ export const ArticleGenerator = () => {
                               ...prev,
                               facultyName: e.target.value
                             }))}
-                            placeholder="مثال: كلية الآداب والعلوم"
+                            placeholder="مثال: كلية تربية عام"
                           />
                         </div>
                         <div className="space-y-2">
@@ -398,7 +398,7 @@ export const ArticleGenerator = () => {
                               ...prev,
                               departmentName: e.target.value
                             }))}
-                            placeholder="مثال: قسم البحوث العلمية"
+                            placeholder="مثال: علوم"
                           />
                         </div>
                         <div className="space-y-2">
@@ -422,7 +422,7 @@ export const ArticleGenerator = () => {
                               ...prev,
                               grade: e.target.value
                             }))}
-                            placeholder="مثال: الffرقة الثالثة"
+                            placeholder="مثال: الفرقة الرابعة"
                           />
                         </div>
                         <div className="space-y-2">
